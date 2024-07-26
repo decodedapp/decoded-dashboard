@@ -1,4 +1,6 @@
 import { sha256 } from "js-sha256";
+import { arrayBufferToWebP } from "webp-converter-browser";
+import imageCompression from "browser-image-compression";
 
 export const validateEmail = (email: string): boolean => {
   const re =
