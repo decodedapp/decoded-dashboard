@@ -10,6 +10,7 @@ import { ConvertImageAndCompress } from "@/utils/util";
 import { getDownloadURL } from "firebase/storage";
 import { HoverItemInfo } from "@/types/model";
 import { Button } from "@mui/material";
+import { StopCircleRounded } from "@mui/icons-material";
 
 export const ItemModal = (hoverItemInfo: { hoverItemInfo: HoverItemInfo }) => {
   return (
@@ -124,6 +125,16 @@ export const BrandModal = ({
       className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
       <div className="flex flex-col p-2 w-full">
+        <button
+          className="w-full text-right text-xl"
+          onClick={() =>
+            (
+              document.getElementById("my_modal_2") as HTMLDialogElement
+            )?.close()
+          }
+        >
+          x
+        </button>
         <div>
           <p className="text-md font-bold mb-2">Brand Detail</p>
           <input
@@ -267,6 +278,16 @@ export const ArtistModal = ({
       className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
       <div className="flex flex-col p-2 w-full">
+        <button
+          className="w-full text-right text-xl"
+          onClick={() =>
+            (
+              document.getElementById("my_modal_1") as HTMLDialogElement
+            )?.close()
+          }
+        >
+          x
+        </button>
         <div>
           <p className="text-md font-bold mb-2 text-black">Artist Detail</p>
           <input

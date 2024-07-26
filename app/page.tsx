@@ -125,9 +125,9 @@ function AdminDashboard() {
     <AdminLogin params={{ setIsLogin: setIsLogin }} />
   ) : (
     <div>
-      <div className="flex flex-row border border-black">
+      <div className="grid grid-cols-3 border border-black">
         <div
-          className={`px-4 py-2 cursor-pointer border border-black transition-colors ${
+          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
             selectedTab === "upload"
               ? "bg-black text-white"
               : "hover:bg-gray-300 bg-white"
@@ -137,7 +137,7 @@ function AdminDashboard() {
           Upload
         </div>
         <div
-          className={`px-4 py-2 cursor-pointer border border-black  transition-colors ${
+          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
             selectedTab === "featured"
               ? "bg-black text-white"
               : "hover:bg-gray-300 bg-white"
@@ -147,7 +147,7 @@ function AdminDashboard() {
           Featured
         </div>
         <div
-          className={`px-4 py-2 cursor-pointer border border-black transition-colors ${
+          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
             selectedTab === "request"
               ? "bg-black text-white"
               : "hover:bg-gray-300 bg-white"
@@ -1119,7 +1119,7 @@ function UploadFeaturedSection() {
   };
 
   return (
-    <div className={`flex flex-col p-10`}>
+    <div className="flex flex-col p-2">
       <input
         type="file"
         onChange={(e) => setFeaturedImage(e.target.files![0])}
@@ -1218,7 +1218,7 @@ function RequestListSection() {
                   colSpan={4}
                   className="p-20 text-center text-gray-500 text-xl"
                 >
-                  데이터 없음
+                  NO DATA
                 </td>
               </tr>
             )}
@@ -1249,9 +1249,7 @@ function RequestListSection() {
             </div>
           ))
         ) : (
-          <div className="text-center text-gray-500 text-xl p-10">
-            데이터 없음
-          </div>
+          <div className="text-center text-gray-500 text-xl p-10">NO DATA</div>
         )}
       </div>
     </div>
