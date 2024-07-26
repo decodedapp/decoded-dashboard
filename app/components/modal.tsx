@@ -121,11 +121,8 @@ export const BrandModal = ({
   return (
     <dialog
       id="my_modal_2"
-      className="modal flex flex-col w-[500px] h-[800px] bg-white rounded-xl p-2 left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]"
+      className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
-      <h1 className="text-xl font-bold p-2 border-b border-black-opacity-20 w-full mb-2 text-center">
-        Add New Brand
-      </h1>
       <div className="flex flex-col p-2 w-full">
         <div>
           <p className="text-md font-bold mb-2">Brand Detail</p>
@@ -148,7 +145,7 @@ export const BrandModal = ({
             }}
           />
         </div>
-        <div>
+        <div className="my-2">
           <p className="text-md font-bold mb-2">Category</p>
           <select
             className="dark:bg-white w-full"
@@ -162,28 +159,28 @@ export const BrandModal = ({
             ))}
           </select>
         </div>
-        <div>
+        <div className="my-2">
           <p className="text-md font-bold mb-2">Website</p>
           <input
             type="text"
             placeholder="Website URL"
-            className="input input-bordered w-full mb-2 dark:bg-white"
+            className="input input-bordered w-full dark:bg-white"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
           />
         </div>
 
-        <div>
+        <div className="my-2">
           <p className="text-md font-bold mb-2">Logo</p>
           <input
             type="file"
             accept="image/*"
-            className="input w-full mb-2 dark:bg-white"
+            className="w-full dark:bg-white"
             onChange={(e) => e.target.files && setLogoImage(e.target.files[0])}
           />
         </div>
 
-        <div>
+        <div className="mt-2">
           <p className="text-md font-bold mb-2">SNS</p>
           {Object.values(SnsType).map((snsType) => (
             <div key={snsType}>
@@ -202,7 +199,7 @@ export const BrandModal = ({
         </div>
       </div>
       <button
-        className="btn btn-primary mt-10 w-full"
+        className="border border-black rounded-lg p-2 mt-2 w-full"
         onClick={addBrandToFirebase}
       >
         추가
@@ -267,14 +264,11 @@ export const ArtistModal = ({
   return (
     <dialog
       id="my_modal_1"
-      className="modal flex flex-col w-[500px] h-[700px] bg-white rounded-xl p-2 left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]"
+      className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
-      <h1 className="text-xl font-bold p-2 border-b border-black-opacity-20 w-full mb-2 text-center">
-        Add Artist
-      </h1>
       <div className="flex flex-col p-2 w-full">
         <div>
-          <p className="text-md font-bold mb-2">Artist Detail</p>
+          <p className="text-md font-bold mb-2 text-black">Artist Detail</p>
           <input
             type="text"
             placeholder="아티스트 이름"
@@ -299,7 +293,7 @@ export const ArtistModal = ({
             onChange={(e) => setGroup(e.target.value)}
           />
           <div>
-            <p className=" text-md font-bold mb-2">SNS</p>
+            <p className=" text-md font-bold mb-2 text-black">SNS</p>
             {Object.values(SnsType).map((snsType) => (
               <div key={snsType}>
                 <label className="block mb-2 text-sm font-bold text-gray-700">
@@ -317,7 +311,7 @@ export const ArtistModal = ({
           </div>
         </div>
         <div>
-          <p className="text-md font-bold mb-2">Category</p>
+          <p className="text-md font-bold mb-2 text-black">Category</p>
           <select
             multiple={true}
             className="dark:bg-white w-full"
@@ -333,7 +327,7 @@ export const ArtistModal = ({
         </div>
       </div>
       <button
-        className="btn btn-primary mt-10 w-full"
+        className="border border-black rounded-lg p-2 mt-10 w-full"
         onClick={addArtistToFirebase}
       >
         추가

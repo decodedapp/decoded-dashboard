@@ -157,7 +157,7 @@ function AdminDashboard() {
           Request
         </div>
       </div>
-      <div className="p-4 border-b border-black bg-white">
+      <div className=" bg-white">
         <div className={selectedTab === "upload" ? "block" : "hidden"}>
           <UploadImageSection
             brands={brands}
@@ -757,19 +757,25 @@ function UploadImageSection({
   };
 
   const filteredBrands = (index: number) => {
-    return brands?.filter((brand) =>
-      brand?.toLowerCase().includes(searchKeywords[index]?.toLowerCase())
+    if (!brands) return [];
+    if (!searchKeywords[index]) return brands;
+    return brands.filter((brand) =>
+      brand.toLowerCase().includes(searchKeywords[index]?.toLowerCase() || "")
     );
   };
 
   return (
-    <div className="mx-auto">
-      <div className="flex flex-col md:flex-row items-center justify-center">
-        <div className="flex flex-col w-full md:w-[50%] p-10">
-          <input type="file" onChange={handleImageChange} className="mb-4" />
+    <div className="overflow-y-scroll">
+      <div className="flex flex-col md:flex-row items-center justify-center overflow-y-scroll">
+        <div className="flex flex-col w-full md:w-[50%]">
+          <input
+            type="file"
+            onChange={handleImageChange}
+            className="mb-2 p-2"
+          />
           {/* Image Section */}
           {uploadImageState?.selectedImageUrl && (
-            <div className="relative m-2 w-full h-[60vh] aspect-w-3 aspect-h-4">
+            <div className="relative w-full h-[60vh] aspect-w-3 aspect-h-4">
               <Image
                 src={uploadImageState?.selectedImageUrl}
                 alt="Featured fashion"
@@ -796,7 +802,7 @@ function UploadImageSection({
           )}
         </div>
         {/* HoverItem Section */}
-        <div className="flex-1 h-[80vh]">
+        <div className="flex-1 w-full h-[80vh]">
           <div className="flex">
             {uploadImageState?.hoverItems?.map((_item, index) => (
               <div
@@ -823,7 +829,7 @@ function UploadImageSection({
                 <div className="flex justify-center mt-2">
                   <select
                     multiple={false}
-                    className="input border border-black w-full mb-2 dark:bg-white"
+                    className="input border border-black w-full dark:bg-white"
                     value={item.artistName}
                     onChange={(e) => {
                       handleHoverItemInfo(
@@ -847,7 +853,7 @@ function UploadImageSection({
                     ))}
                   </select>
                   <button
-                    className="ml-2 text-black border border-black"
+                    className="ml-2 text-black border border-black w-[100px] rounded-lg"
                     onClick={() =>
                       (
                         document.getElementById(
@@ -856,11 +862,11 @@ function UploadImageSection({
                       )?.showModal()
                     }
                   >
-                    Add Artist
+                    +
                   </button>
                   <ArtistModal setIsDataAdded={setIsDataAdded} />
                 </div>
-                <p className="text-md font-bold">Item Detail</p>
+                <p className="text-md font-bold mt-2">Item Detail</p>
                 <CustomDropdown
                   items={items}
                   pos={uploadImageState.hoverItems?.[index].pos}
@@ -966,12 +972,13 @@ function UploadImageSection({
                         ))}
                       </select>
                     </div>
-                    <div>
+                    <p className="text-md font-bold">Item Brand</p>
+                    <div className="my-2">
                       <input
                         type="text"
                         placeholder="브랜드 검색..."
                         className="input border border-black w-full mb-2 dark:bg-white"
-                        value={searchKeywords[index]}
+                        value={searchKeywords[index] || ""} // 초기값을 빈 문자열로 설정
                         onChange={(e) => {
                           setSearchKeywords((prev) => ({
                             ...prev,
@@ -979,62 +986,63 @@ function UploadImageSection({
                           }));
                         }}
                       />
-                      <select
-                        multiple={true}
-                        className="input border border-black w-full mb-2 dark:bg-white"
-                        value={item.brandName}
-                        onChange={(e) => {
-                          const selectedOptions = Array.from(
-                            e.target.selectedOptions,
-                            (option) => option.value
-                          );
+                      <div className="flex">
+                        <select
+                          multiple={true}
+                          className="input border border-black w-full dark:bg-white"
+                          value={item.brandName || []} // 초기값을 빈 배열로 설정
+                          onChange={(e) => {
+                            const selectedOptions = Array.from(
+                              e.target.selectedOptions,
+                              (option) => option.value
+                            );
+                            handleHoverItemInfo(
+                              index,
+                              undefined,
+                              false,
+                              selectedOptions
+                            );
+                          }}
+                        >
+                          {filteredBrands(index)?.map((brand, index) => (
+                            <option key={index} value={brand}>
+                              {brand
+                                .split("_")
+                                .map((word) => word.toUpperCase())
+                                .join(" ")}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="text-black border border-black rounded-lg w-[100px] ml-2"
+                          onClick={() =>
+                            (
+                              document.getElementById(
+                                "my_modal_2"
+                              ) as HTMLDialogElement
+                            )?.showModal()
+                          }
+                        >
+                          +
+                        </button>
+                        <BrandModal setIsDataAdded={setIsDataAdded} />
+                      </div>
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-md font-bold">Item Image</p>
+                      <input
+                        type="file"
+                        onChange={(e) =>
                           handleHoverItemInfo(
                             index,
                             undefined,
                             false,
-                            selectedOptions
-                          );
-                        }}
-                      >
-                        {filteredBrands(index)?.map((brand, index) => (
-                          <option key={index} value={brand}>
-                            {brand
-                              .split("_")
-                              .map((word) => word.toUpperCase())
-                              .join(" ")}
-                          </option>
-                        ))}
-                      </select>
-                      {filteredBrands?.length == 0 && (
-                        <>
-                          <button
-                            className="btn bg-[#FF204E] m-2 text-black"
-                            onClick={() =>
-                              (
-                                document.getElementById(
-                                  "my_modal_2"
-                                ) as HTMLDialogElement
-                              )?.showModal()
-                            }
-                          >
-                            Add New Brand
-                          </button>
-                          <BrandModal setIsDataAdded={setIsDataAdded} />
-                        </>
-                      )}
+                            e.target.files![0]
+                          )
+                        }
+                        className="mt-2 w-full dark:bg-white"
+                      />
                     </div>
-                    <input
-                      type="file"
-                      onChange={(e) =>
-                        handleHoverItemInfo(
-                          index,
-                          undefined,
-                          false,
-                          e.target.files![0]
-                        )
-                      }
-                      className="input w-full dark:bg-white"
-                    />
                   </>
                 )}
               </div>
@@ -1043,7 +1051,8 @@ function UploadImageSection({
         </div>
       </div>
       {uploadImageState?.selectedImageUrl && (
-        <div className="p-4">
+        <div className="m-2">
+          <p className="text-md font-bold">Additional Info</p>
           <input
             type="text"
             placeholder="Image Title (e.g Rose in NYC)"
@@ -1074,7 +1083,7 @@ function UploadImageSection({
           />
           <button
             onClick={upload}
-            className="bg-white border border-black w-full p-2"
+            className="bg-white border border-black w-full p-2 mt-4"
           >
             {isUploading ? (
               <span className="loading loading-spinner loading-md"></span>
@@ -1182,37 +1191,69 @@ function RequestListSection() {
 
   return (
     <div className="p-2 m-10">
-      <table className="table-auto w-full mt-4">
-        <thead>
-          <tr>
-            <th className="px-4 py-2">Request ID</th>
-            <th className="px-4 py-2">Description</th>
-            <th className="px-4 py-2">Name</th>
-            <th className="px-4 py-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {requests.length > 0 ? (
-            requests.map((request) => (
-              <tr key={request.request_id}>
-                <td className="border px-4 py-2">{request.request_id}</td>
-                <td className="border px-4 py-2">{request.description}</td>
-                <td className="border px-4 py-2">{request.name}</td>
-                <td className="border px-4 py-2">{request.status}</td>
-              </tr>
-            ))
-          ) : (
+      {/* 데스크톱 뷰 */}
+      <div className="hidden md:block">
+        <table className="table-auto w-full mt-4">
+          <thead>
             <tr>
-              <td
-                colSpan={4}
-                className="p-20 text-center text-gray-500 text-xl"
-              >
-                No Data
-              </td>
+              <th className="px-4 py-2">요청 ID</th>
+              <th className="px-4 py-2">설명</th>
+              <th className="px-4 py-2">이름</th>
+              <th className="px-4 py-2">상태</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {requests.length > 0 ? (
+              requests.map((request) => (
+                <tr key={request.request_id}>
+                  <td className="border px-4 py-2">{request.request_id}</td>
+                  <td className="border px-4 py-2">{request.description}</td>
+                  <td className="border px-4 py-2">{request.name}</td>
+                  <td className="border px-4 py-2">{request.status}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="p-20 text-center text-gray-500 text-xl"
+                >
+                  데이터 없음
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 모바일 뷰 */}
+      <div className="md:hidden">
+        {requests.length > 0 ? (
+          requests.map((request) => (
+            <div
+              key={request.request_id}
+              className="bg-white shadow-md rounded-lg mb-4 p-4"
+            >
+              <p>
+                <strong>요청 ID:</strong> {request.request_id}
+              </p>
+              <p>
+                <strong>설명:</strong> {request.description}
+              </p>
+              <p>
+                <strong>이름:</strong> {request.name}
+              </p>
+              <p>
+                <strong>상태:</strong> {request.status}
+              </p>
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-gray-500 text-xl p-10">
+            데이터 없음
+          </div>
+        )}
+      </div>
     </div>
   );
 }
