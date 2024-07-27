@@ -28,68 +28,72 @@ import { sha256 } from "js-sha256";
 import { ArtistModal, BrandModal, ItemModal } from "@/app/components/modal";
 
 function AdminLogin({
-  params,
+  onLogin,
 }: {
-  params: {
-    setIsLogin: Dispatch<SetStateAction<boolean>>;
-  };
+  onLogin: (email: string, password: string) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
-    if (!validateEmail(email)) {
-      alert("Invalid email format");
-      return;
-    }
-    FirebaseHelper.adminLogin(email, password).then((isAdmin) => {
-      if (isAdmin) {
-        params.setIsLogin(true);
-      } else {
-        alert("No Permission!");
-      }
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onLogin(email, password);
   };
 
   return (
-    <div className="flex flex-1 w-full h-screen items-center justify-center">
-      <div className="flex flex-col">
-        <input
-          type="text"
-          placeholder="id"
-          className="border border-black w-full max-w-xs bg-white p-3 fill-none"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="password"
-          className="border border-black w-full max-w-xs mt-5 bg-white p-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          onClick={handleLogin}
-          className="bg-white text-black border border-black mt-5"
-        >
-          Login
-        </button>
-      </div>
-    </div>
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col w-full h-screen justify-center items-center"
+    >
+      <h2 className="text-2xl mb-4">Welcome </h2>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="이메일"
+        required
+        className="border border-black p-2"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="비밀번호"
+        required
+        className="border border-black p-2 mt-2"
+      />
+      <button type="submit" className="mt-4">
+        로그인
+      </button>
+    </form>
   );
 }
 
 function AdminDashboard() {
-  const [isLogin, setIsLogin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDataAdded, setIsDataAdded] = useState(false);
   const [brands, setBrands] = useState<string[] | null>(null);
   const [artists, setArtists] = useState<string[] | null>(null);
   const [items, setItems] = useState<ItemInfo[] | null>(null);
   const [selectedTab, setSelectedTab] = useState("upload");
 
+  // Checking admin status
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const storedAdminStatus = localStorage.getItem("isAdmin");
+      if (storedAdminStatus === "true") {
+        setIsAdmin(true);
+      }
+      setIsLoading(false);
+    };
+
+    checkAdminStatus();
+  }, []);
+
+  // Handling data
   useEffect(() => {
     const fetchData = async () => {
-      if (!isLogin) return;
       console.log("Fetching brands and artists...");
       const artists: string[] = [];
       const brands: string[] = [];
@@ -119,11 +123,27 @@ function AdminDashboard() {
       });
     };
     fetchData();
-  }, [isLogin, isDataAdded]);
+  }, [isAdmin, isDataAdded]);
 
-  return !isLogin ? (
-    <AdminLogin params={{ setIsLogin: setIsLogin }} />
-  ) : (
+  const handleLogin = async (email: string, password: string) => {
+    const adminStatus = await FirebaseHelper.adminLogin(email, password);
+    if (adminStatus) {
+      setIsAdmin(true);
+      localStorage.setItem("isAdmin", "true");
+    } else {
+      alert("로그인 실패!");
+    }
+  };
+
+  if (isLoading) {
+    return <div>로딩 중...</div>;
+  }
+
+  if (!isAdmin) {
+    return <AdminLogin onLogin={handleLogin} />;
+  }
+
+  return (
     <div>
       <div className="grid grid-cols-3 border border-black">
         <div
