@@ -766,8 +766,8 @@ function UploadImageSection({
 
   return (
     <div className="overflow-y-scroll">
-      <div className="flex flex-col md:flex-row items-center justify-center overflow-y-scroll">
-        <div className="flex flex-col w-full md:w-[50%]">
+      <div className="flex flex-col lg:flex-row items-center justify-center overflow-y-scroll">
+        <div className="flex flex-col w-full lg:w-[50%]">
           <input
             type="file"
             onChange={handleImageChange}
