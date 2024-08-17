@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, Dispatch, SetStateAction, useId } from "react";
 import { usePathname } from "next/navigation";
 import { FirebaseHelper } from "@/network/firebase";
 import { setDoc, doc } from "firebase/firestore";
@@ -57,8 +57,10 @@ export const ItemModal = (hoverItemInfo: { hoverItemInfo: HoverItemInfo }) => {
 
 export const BrandModal = ({
   setIsDataAdded,
+  id,
 }: {
   setIsDataAdded: (isDataAdded: boolean) => void;
+  id: number;
 }) => {
   const [brandName, setBrandName] = useState<string>("");
   const [creativeDirector, setCreativeDirector] = useState<string[]>([]);
@@ -66,7 +68,6 @@ export const BrandModal = ({
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [logoImage, setLogoImage] = useState<File>();
   const [sns, setSns] = useState<Record<string, string>>({});
-
   const handleSnsUrlChange =
     (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       setSns({ ...sns, [type]: e.target.value });
@@ -121,7 +122,7 @@ export const BrandModal = ({
 
   return (
     <dialog
-      id="my_modal_2"
+      id={`brand_modal_${id}`}
       className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
       <div className="flex flex-col p-2 w-full">
@@ -129,7 +130,7 @@ export const BrandModal = ({
           className="w-full text-right text-xl"
           onClick={() =>
             (
-              document.getElementById("my_modal_2") as HTMLDialogElement
+              document.getElementById(`brand_modal_${id}`) as HTMLDialogElement
             )?.close()
           }
         >
@@ -221,8 +222,10 @@ export const BrandModal = ({
 
 export const ArtistModal = ({
   setIsDataAdded,
+  id,
 }: {
   setIsDataAdded: (isDataAdded: boolean) => void;
+  id: number;
 }) => {
   const [artistName, setArtistName] = useState<string>("");
   const [artistCategories, setArtistCategories] = useState<string[]>([]);
@@ -274,7 +277,7 @@ export const ArtistModal = ({
 
   return (
     <dialog
-      id="my_modal_1"
+      id={`artist_modal_${id}`}
       className="modal flex flex-col w-[90vw] h-[90vh] p-4 bg-white rounded-xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-scroll"
     >
       <div className="flex flex-col p-2 w-full">
@@ -282,7 +285,7 @@ export const ArtistModal = ({
           className="w-full text-right text-xl"
           onClick={() =>
             (
-              document.getElementById("my_modal_1") as HTMLDialogElement
+              document.getElementById(`artist_modal_${id}`) as HTMLDialogElement
             )?.close()
           }
         >

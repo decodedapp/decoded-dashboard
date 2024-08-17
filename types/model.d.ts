@@ -55,6 +55,49 @@ export interface ImageInfo {
   source?: string;
 }
 
+export interface ImageInfoV2 {
+  /**
+   * @example ["en" -> "New York Fashion Week 2024", "ko" -> "뉴욕 패션 위크 2024"]
+   */
+  title: Record<string, string>;
+  /**
+   * @example "2024-03-01"
+   */
+  updateAt: Date;
+  /**
+   * @example "https://example.com/image.jpg"
+   */
+  mainImageUrl?: string;
+  /**
+   * @example ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+   */
+  subImageUrls?: string[];
+  /**
+   * @example "grunge", "minimalist",
+   */
+  style?: string;
+  /**
+   * @example { "top" -> TaggedItem {..}, "bottom" -> TaggedItem {..} }
+   */
+  taggedSection?: Record<string, TaggedItem>;
+  /**
+   * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
+   */
+  tags?: Record<string, string[]>;
+  /**
+   * @example "Description for the image"
+   */
+  description?: string;
+  /**
+   * @example { "background": ["#FFFFFF", "#000000"], "style": ["#FFFFFF", "#000000"] }
+   */
+  colorInfo?: ColorInfo;
+  /**
+   * @example "Source url"
+   */
+  source?: string;
+}
+
 /**
  * The ArtistInfo interface defines the structure for artist information.
  * @param name The name of the artist.

@@ -6,6 +6,7 @@ import {
   useEffect,
   Dispatch,
   SetStateAction,
+  useId,
 } from "react";
 import {
   TaggedItem,
@@ -321,7 +322,8 @@ function UploadImageSection({
 
     const hasValidHoverItems = uploadImageState.hoverItems!.every((item) => {
       const { category, name, price } = item.info;
-      const isAdditionalInfoNeeded = category !== "location";
+      const isAdditionalInfoNeeded =
+        category !== "location" && category !== "furniture";
       var hasCommonFields: boolean = true;
       if (item.isNew) {
         hasCommonFields =
@@ -877,14 +879,14 @@ function UploadImageSection({
                     onClick={() =>
                       (
                         document.getElementById(
-                          "my_modal_1"
+                          `artist_modal_${index}`
                         ) as HTMLDialogElement
                       )?.showModal()
                     }
                   >
                     +
                   </button>
-                  <ArtistModal setIsDataAdded={setIsDataAdded} />
+                  <ArtistModal setIsDataAdded={setIsDataAdded} id={index} />
                 </div>
                 <p className="text-md font-bold mt-2">Item Detail</p>
                 <CustomDropdown
@@ -1038,14 +1040,17 @@ function UploadImageSection({
                           onClick={() =>
                             (
                               document.getElementById(
-                                "my_modal_2"
+                                `brand_modal_${index}`
                               ) as HTMLDialogElement
                             )?.showModal()
                           }
                         >
                           +
                         </button>
-                        <BrandModal setIsDataAdded={setIsDataAdded} />
+                        <BrandModal
+                          setIsDataAdded={setIsDataAdded}
+                          id={index}
+                        />
                       </div>
                     </div>
                     <div className="flex flex-col">
@@ -1139,7 +1144,7 @@ function UploadFeaturedSection() {
   };
 
   return (
-    <div className="flex flex-col p-2">
+    <div className="flex flex-col p-2 min-h-[100vh]">
       <input
         type="file"
         onChange={(e) => setFeaturedImage(e.target.files![0])}
