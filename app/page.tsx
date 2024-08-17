@@ -323,7 +323,9 @@ function UploadImageSection({
     const hasValidHoverItems = uploadImageState.hoverItems!.every((item) => {
       const { category, name, price } = item.info;
       const isAdditionalInfoNeeded =
-        category !== "location" && category !== "furniture";
+        category !== "location" &&
+        category !== "furniture" &&
+        category !== "paint";
       var hasCommonFields: boolean = true;
       if (item.isNew) {
         hasCommonFields =
@@ -1097,12 +1099,10 @@ function UploadImageSection({
             value={uploadImageState?.description ?? ""}
             onChange={(e) => {
               const inputText = e.target.value;
-              if (getByteSize(inputText) <= 500) {
-                setUploadImageState({
-                  ...uploadImageState,
-                  description: inputText,
-                });
-              }
+              setUploadImageState({
+                ...uploadImageState,
+                description: inputText,
+              });
             }}
             className="input border border-black w-full mb-2 dark:bg-white"
           />

@@ -63,6 +63,8 @@ export const BrandModal = ({
   id: number;
 }) => {
   const [brandName, setBrandName] = useState<string>("");
+  const [creativeDirectorInput, setCreativeDirectorInput] =
+    useState<string>("");
   const [creativeDirector, setCreativeDirector] = useState<string[]>([]);
   const [brandCategory, setBrandCategory] = useState<string>("");
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
@@ -91,7 +93,11 @@ export const BrandModal = ({
     }
 
     const imageFile = await ConvertImageAndCompress(logoImage, 1, 1280);
-
+    const directorsArray = creativeDirectorInput
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+    setCreativeDirector(directorsArray);
     const imageName = brandName + "_logo";
     const path = "logos/" + imageName;
     // Upload image to storage
@@ -112,6 +118,7 @@ export const BrandModal = ({
     );
     setIsDataAdded(true);
     setBrandName(""); // 입력 필드 초기화
+    setCreativeDirectorInput("");
     setCreativeDirector([]);
     setBrandCategory("");
     setWebsiteUrl("");
@@ -149,12 +156,8 @@ export const BrandModal = ({
             type="text"
             placeholder="Creative Director"
             className="input input-bordered w-full mb-2 dark:bg-white"
-            value={creativeDirector.join(", ")}
-            onChange={(e) => {
-              setCreativeDirector(
-                e.target.value.split(",").map((cd) => cd.trim())
-              );
-            }}
+            value={creativeDirectorInput}
+            onChange={(e) => setCreativeDirectorInput(e.target.value)}
           />
         </div>
         <div className="my-2">
@@ -285,7 +288,7 @@ export const ArtistModal = ({
           className="w-full text-right text-xl"
           onClick={() =>
             (
-              document.getElementById(`artist_modal_${id}`) as HTMLDialogElement
+              document.getElementById("my_modal_1") as HTMLDialogElement
             )?.close()
           }
         >
