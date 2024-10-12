@@ -17,6 +17,7 @@ import {
   HoverItemInfo,
   FeaturedInfo,
   Position,
+  UploadImageState,
 } from "@/types/model";
 import { FirebaseHelper } from "@/network/firebase";
 import {
@@ -24,9 +25,12 @@ import {
   getByteSize,
   create_doc_id,
   validateEmail,
+  arrayBufferToBase64,
+  convertKeysToSnakeCase,
 } from "@/utils/util";
 import { sha256 } from "js-sha256";
 import { ArtistModal, BrandModal, ItemModal } from "@/app/components/modal";
+import { networkManager } from "@/network/network";
 
 function AdminLogin({
   onLogin,
@@ -101,8 +105,8 @@ function AdminDashboard() {
       const items: ItemInfo[] = [];
 
       Promise.all([
-        FirebaseHelper.docs("brands"),
-        FirebaseHelper.docs("artists"),
+        // FirebaseHelper.docs("brands"),
+        // FirebaseHelper.docs("artists"),
         FirebaseHelper.docs("items"),
       ]).then(([b, a, i]) => {
         b.forEach((doc) => {
@@ -123,7 +127,7 @@ function AdminDashboard() {
         setIsDataAdded(false);
       });
     };
-    fetchData();
+    // fetchData();
   }, [isAdmin, isDataAdded]);
 
   const handleLogin = async (email: string, password: string) => {
@@ -233,6 +237,24 @@ function UploadImageSection({
       setIsUploading(false);
       return;
     }
+    const image_file = uploadImageState?.imageFile! as File;
+    const buf = await image_file.arrayBuffer();
+    const base64 = arrayBufferToBase64(buf);
+    uploadImageState.imageFile = base64;
+    const itemImageFiles = await Promise.all(uploadImageState.hoverItems!.map(async (item) => 
+      { 
+        if (item.hoverItemImg) {
+          const f = item.hoverItemImg as File;
+          const buf = await f.arrayBuffer();
+          const base64 = arrayBufferToBase64(buf);
+          item.hoverItemImg = base64;
+          return item;
+        }
+        return item;
+      }));
+    uploadImageState.hoverItems = itemImageFiles;
+    await networkManager.handleUploadImage(convertKeysToSnakeCase(uploadImageState));
+    return;
     const file = uploadImageState?.imageFile;
     const hoverItemInfo = uploadImageState?.hoverItems;
     // It is safe to force unwrap due to sanity check
@@ -261,6 +283,7 @@ function UploadImageSection({
     console.log("Handle upload image");
     // "images"
     await handleUploadImage(tags, taggedItems);
+    return
     console.log("Handle remain tags");
     // "brands", "artists"
     await handleRemain(tags, requiredKeys);
@@ -550,8 +573,6 @@ function UploadImageSection({
       // field 값에 따라 적절한 타입으로 값을 할당
       if (field === "tags") {
         return prevState; // tags는 여기서 처리하지 않음
-      } else if (field === "hyped") {
-        updatedHoverItems[index].info[field] = value as number;
       } else if (field === "price") {
         if (isCurrency) {
           updatedHoverItems[index].info[field]![1] = value as string;
@@ -562,7 +583,7 @@ function UploadImageSection({
         return prevState; // brands는 여기서 처리하지 않음
       } else {
         if (field) {
-          // Reamining fields
+          // Remaining fields
           updatedHoverItems[index].info[field] = value as string;
         } else {
           if (value instanceof File) {
@@ -658,33 +679,30 @@ function UploadImageSection({
     tags: Record<string, string[]>,
     taggedItems: TaggedItem[]
   ) => {
-    const imageInfo: ImageInfo = {
+    var imageInfo: ImageInfo = {
       title: uploadImageState?.imageName!,
       description: uploadImageState?.description,
-      hyped: 0,
-      taggedItem: taggedItems,
-      updateAt: new Date(),
+      mainImageUrl: "",
+      items: taggedItems,
       tags: {},
     };
     try {
+      handleImageTags(tags, imageInfo);
+      // Upload `imageInfo` to db
+      // await FirebaseHelper.setDoc("images", image_doc_id, imageInfo);
+      await networkManager.handleCreateDoc("image", imageInfo);
+      return;
       const imageFile = await ConvertImageAndCompress(
-        uploadImageState?.imageFile!,
+        uploadImageState?.imageFile! as File,
         1,
         1280
       );
       // path = "images/{image_doc_id}"
-      const path = "images/" + tags["images"][0];
       const image_doc_id = tags["images"][0];
+      const path = "images/" + image_doc_id;
       // Upload image to storage
-      await FirebaseHelper.uploadDataToStorage(path, imageFile, {
-        customMetadata: {
-          // Hash of image is only one
-          id: image_doc_id,
-        },
-      });
-      handleImageTags(tags, imageInfo);
-      // Upload `imageInfo` to db
-      await FirebaseHelper.setDoc("images", image_doc_id, imageInfo);
+      let res = await FirebaseHelper.uploadDataToStorage(path, imageFile);
+      imageInfo.mainImageUrl = await FirebaseHelper.downloadUrl(res.ref);
       console.log(
         "Original File Size (KB):",
         (uploadImageState?.imageFile!.size! / 1024).toFixed(2)
@@ -721,16 +739,16 @@ function UploadImageSection({
       if (hoverItem.isNew) {
         if (
           hoverItemImg &&
-          (hoverItemImg.type.includes("jpeg") ||
-            hoverItemImg.type.includes("png") ||
-            hoverItemImg.type.includes("webp") ||
-            hoverItemImg.type.includes("avif"))
+          (hoverItemImg as File).type.includes("jpeg") ||
+            (hoverItemImg as File).type.includes("png") ||
+            (hoverItemImg as File).type.includes("webp") ||
+            (hoverItemImg as File).type.includes("avif")
         ) {
           try {
             if (!docExists) {
               console.log("Trying to convert to webp...");
               const itemImage = await ConvertImageAndCompress(
-                hoverItemImg,
+                hoverItemImg as File,
                 1,
                 1280
               );
@@ -1411,14 +1429,6 @@ function CustomDropdown({
       </div>
     </div>
   );
-}
-
-interface UploadImageState {
-  selectedImageUrl?: string;
-  hoverItems?: HoverItemInfo[];
-  imageFile?: File;
-  imageName?: string;
-  description?: string;
 }
 
 enum ItemCategory {

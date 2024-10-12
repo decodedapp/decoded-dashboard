@@ -11,6 +11,7 @@ import { getDownloadURL } from "firebase/storage";
 import { HoverItemInfo } from "@/types/model";
 import { Button } from "@mui/material";
 import { StopCircleRounded } from "@mui/icons-material";
+import { networkManager } from "@/network/network";
 
 export const ItemModal = (hoverItemInfo: { hoverItemInfo: HoverItemInfo }) => {
   return (
@@ -62,10 +63,11 @@ export const BrandModal = ({
   setIsDataAdded: (isDataAdded: boolean) => void;
   id: number;
 }) => {
-  const [brandName, setBrandName] = useState<string>("");
-  const [creativeDirectorInput, setCreativeDirectorInput] =
+  const [brandName, setBrandName] = useState<Record<string, string>>({ en: '', kr: '' });
+  const [creativeDirectorEnInput, setCreativeDirectorEnInput] =
     useState<string>("");
-  const [creativeDirector, setCreativeDirector] = useState<string[]>([]);
+  const [creativeDirectorKrInput, setCreativeDirectorKrInput] =
+    useState<string>("");
   const [brandCategory, setBrandCategory] = useState<string>("");
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [logoImage, setLogoImage] = useState<File>();
@@ -75,7 +77,17 @@ export const BrandModal = ({
       setSns({ ...sns, [type]: e.target.value });
     };
 
-  const addBrandToFirebase = async () => {
+  const defaultState = () => {
+    setBrandName({ en: '', kr: '' });
+    setCreativeDirectorEnInput("");
+    setCreativeDirectorKrInput("");
+    setBrandCategory("");
+    setWebsiteUrl("");
+    setLogoImage(undefined);
+    setSns({});
+  }
+
+  const upload = async () => {
     if (!brandName) {
       alert("브랜드 이름을 입력해주세요.");
       return;
@@ -83,49 +95,48 @@ export const BrandModal = ({
 
     if (
       !brandCategory ||
-      !creativeDirector ||
+      !creativeDirectorEnInput ||
+      !creativeDirectorKrInput ||
       !websiteUrl ||
-      !logoImage ||
-      !sns
+      // !logoImage ||
+      !sns ||
+      creativeDirectorEnInput.length !== creativeDirectorKrInput.length
     ) {
       alert("Brand category or creative director is not set!");
       return;
     }
-
-    const imageFile = await ConvertImageAndCompress(logoImage, 1, 1280);
-    const directorsArray = creativeDirectorInput
+    //   const imageFile = await ConvertImageAndCompress(logoImage, 1, 1280);
+    const creativeDirectorEnArray = creativeDirectorEnInput
       .split(",")
       .map((name) => name.trim())
       .filter((name) => name !== "");
-    setCreativeDirector(directorsArray);
-    const imageName = brandName + "_logo";
-    const path = "logos/" + imageName;
-    // Upload image to storage
-    const res = await FirebaseHelper.uploadDataToStorage(path, imageFile);
-    const url = await getDownloadURL(res.ref);
+    console.log(creativeDirectorEnArray);
+    const creativeDirectorKrArray = creativeDirectorKrInput
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+    const cd = creativeDirectorEnArray.map((en, i) => ({
+      en: en,
+      kr: creativeDirectorKrArray[i]
+    }));
     const newBrandInfo: BrandInfo = {
       name: brandName,
-      creativeDirector: creativeDirector,
+      creativeDirector: cd,
       category: brandCategory,
       websiteUrl: websiteUrl,
-      logoImageUrl: url,
+      // logoImageUrl: url,
       sns: sns,
       tags: {},
     };
-    await setDoc(
-      doc(FirebaseHelper.db(), "brands", sha256(brandName)),
-      newBrandInfo
-    );
-    setIsDataAdded(true);
-    setBrandName(""); // 입력 필드 초기화
-    setCreativeDirectorInput("");
-    setCreativeDirector([]);
-    setBrandCategory("");
-    setWebsiteUrl("");
-    setLogoImage(undefined);
-    setSns({});
-    alert("Brand is added!");
-  };
+    const response = await networkManager.handleCreateDoc("brand", newBrandInfo);
+    const docId = response.data.data._id;
+    const imageName = docId + ".webp";
+    const path = "logos/" + imageName;
+    // const res = await networkManager.uploadDataToStorage(path, imageFile);
+    // const url = await getDownloadURL(res.ref);
+    defaultState();
+    alert("Brand document is added successfully!");
+  }
 
   return (
     <dialog
@@ -145,20 +156,40 @@ export const BrandModal = ({
         </button>
         <div>
           <p className="text-md font-bold mb-2">Brand Detail</p>
-          <input
-            type="text"
-            placeholder="새 브랜드 추가"
-            className="input input-bordered w-full mb-2 dark:bg-white"
-            value={brandName}
-            onChange={(e) => setBrandName(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Creative Director"
-            className="input input-bordered w-full mb-2 dark:bg-white"
-            value={creativeDirectorInput}
-            onChange={(e) => setCreativeDirectorInput(e.target.value)}
-          />
+          <div>
+            <p className=" text-md font-bold mb-2 text-black">Brand Name</p>
+            <input
+              type="text"
+              placeholder="Brand Name (English)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={brandName.en}
+              onChange={(e) => setBrandName({ ...brandName, en: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Brand Name (Korean)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={brandName.kr}
+              onChange={(e) => setBrandName({ ...brandName, kr: e.target.value })}
+            />
+          </div>
+          <div>
+            <p className=" text-md font-bold mb-2 text-black">Creative Director</p>
+            <input
+              type="text"
+              placeholder="Creative Director (English)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={creativeDirectorEnInput}
+              onChange={(e) => setCreativeDirectorEnInput(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Creative Director (Korean)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={creativeDirectorKrInput}
+              onChange={(e) => setCreativeDirectorKrInput(e.target.value)}
+            />
+          </div>
         </div>
         <div className="my-2">
           <p className="text-md font-bold mb-2">Category</p>
@@ -215,7 +246,7 @@ export const BrandModal = ({
       </div>
       <button
         className="border border-black rounded-lg p-2 mt-2 w-full"
-        onClick={addBrandToFirebase}
+        onClick={upload}
       >
         추가
       </button>
@@ -230,10 +261,10 @@ export const ArtistModal = ({
   setIsDataAdded: (isDataAdded: boolean) => void;
   id: number;
 }) => {
-  const [artistName, setArtistName] = useState<string>("");
+  const [artistName, setArtistName] = useState<Record<string, string>>({ en: '', kr: '' });
   const [artistCategories, setArtistCategories] = useState<string[]>([]);
   const [aka, setAka] = useState<string[]>([]);
-  const [group, setGroup] = useState<string>("");
+  const [group, setGroup] = useState<Record<string, string>>({ en: '', kr: '' });
   const [snsUrls, setSnsUrls] = useState<Record<string, string>>({});
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -254,7 +285,16 @@ export const ArtistModal = ({
     setAka(akaArray);
   };
 
-  const addArtistToFirebase = async () => {
+  const defaultState = () => {
+    setArtistName({ en: '', kr: '' });
+    setArtistCategories([]);
+    setAka([]);
+    setGroup({ en: '', kr: '' });
+    setSnsUrls({});
+    setIsDataAdded(true);
+  }
+
+  const upload = async () => {
     if (!artistName || artistCategories.length === 0) {
       alert("필수 입력 항목을 입력해주세요.");
       return;
@@ -267,16 +307,10 @@ export const ArtistModal = ({
       sns: snsUrls,
       tags: {},
     };
-    await FirebaseHelper.setDoc("artists", sha256(artistName), newArtistInfo);
-    // set to null
-    setArtistName("");
-    setArtistCategories([]);
-    setAka([]);
-    setGroup("");
-    setSnsUrls({});
-    setIsDataAdded(true);
-    alert("Artist is added!");
-  };
+    await networkManager.handleCreateDoc("artist", newArtistInfo);
+    defaultState();
+    alert("Artist is added successfully!");
+  }
 
   return (
     <dialog
@@ -288,7 +322,7 @@ export const ArtistModal = ({
           className="w-full text-right text-xl"
           onClick={() =>
             (
-              document.getElementById("my_modal_1") as HTMLDialogElement
+              document.getElementById(`artist_modal_${id}`) as HTMLDialogElement
             )?.close()
           }
         >
@@ -296,13 +330,23 @@ export const ArtistModal = ({
         </button>
         <div>
           <p className="text-md font-bold mb-2 text-black">Artist Detail</p>
+          <div>
+          <p className="text-md font-bold mb-2 text-black">아티스트 이름</p>
           <input
             type="text"
-            placeholder="아티스트 이름"
+            placeholder="영어 이름 (예: Jennie)"
             className="input input-bordered w-full mb-2 dark:bg-white"
-            value={artistName}
-            onChange={(e) => setArtistName(e.target.value)}
+            value={artistName.en}
+            onChange={(e) => setArtistName({ ...artistName, en: e.target.value })}
           />
+          <input
+            type="text"
+            placeholder="한국어 이름 (예: 제니)"
+            className="input input-bordered w-full mb-2 dark:bg-white"
+            value={artistName.kr}
+            onChange={(e) => setArtistName({ ...artistName, kr: e.target.value })}
+          />
+        </div>
           <div>
             <input
               type="text"
@@ -312,13 +356,23 @@ export const ArtistModal = ({
               onChange={handleAkaChange}
             />
           </div>
-          <input
-            type="text"
-            placeholder="그룹"
-            className="input input-bordered w-full mb-2 dark:bg-white"
-            value={group}
-            onChange={(e) => setGroup(e.target.value)}
-          />
+          <div>
+            <p className=" text-md font-bold mb-2 text-black">Group</p>
+            <input
+              type="text"
+              placeholder="Group (English)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={group.en}
+              onChange={(e) => setGroup({ ...group, en: e.target.value })}
+            />
+            <input
+              type="text"
+              placeholder="Group (Korean)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={group.kr}
+              onChange={(e) => setGroup({ ...group, kr: e.target.value })}
+            />
+          </div>
           <div>
             <p className=" text-md font-bold mb-2 text-black">SNS</p>
             {Object.values(SnsType).map((snsType) => (
@@ -355,7 +409,7 @@ export const ArtistModal = ({
       </div>
       <button
         className="border border-black rounded-lg p-2 mt-10 w-full"
-        onClick={addArtistToFirebase}
+        onClick={upload}
       >
         추가
       </button>

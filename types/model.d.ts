@@ -2,8 +2,7 @@
  * The ImageInfo interface defines the structure for image information.
  * @param title The title of the image.
  * @param updateAt The date of the last update.
- * @param hyped The number of hyped.
- * @param taggedItem Optional array of tagged items.
+ * @param items Optional array of tagged items.
  * @param tags Optional record of tags related to the image, with string keys and values.
  * @param description Optional description of the image.
  * @param extractedColors Optional array of extracted colors.
@@ -14,17 +13,17 @@ export interface ImageInfo {
    */
   title: string;
   /**
-   * @example "2024-03-01"
+   * @example "Runway"
    */
-  updateAt: Date;
+  subtitle?: string;
   /**
-   * @example 100
+   * @example "Description for the image"
    */
-  hyped: number;
+  description?: string;
   /**
    * @example "https://example.com/image.jpg"
    */
-  mainImageUrl?: string;
+  mainImageUrl: string;
   /**
    * @example ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
    */
@@ -36,66 +35,19 @@ export interface ImageInfo {
   /**
    * @example TaggedItem { "id": "123", "pos": { "top": "100px", "left": "100px" } }
    */
-  taggedItem?: TaggedItem[] | HoverItem[];
-  /**
-   * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
-   */
-  tags?: Record<string, string[]>;
-  /**
-   * @example "Description for the image"
-   */
-  description?: string;
+  items?: TaggedItem[] | HoverItem[];
   /**
    * @example { "background": ["#FFFFFF", "#000000"], "style": ["#FFFFFF", "#000000"] }
    */
-  colorInfo?: ColorInfo;
+  colorInfo?: string[];
   /**
    * @example "Source url"
    */
   source?: string;
-}
-
-export interface ImageInfoV2 {
-  /**
-   * @example ["en" -> "New York Fashion Week 2024", "ko" -> "뉴욕 패션 위크 2024"]
-   */
-  title: Record<string, string>;
-  /**
-   * @example "2024-03-01"
-   */
-  updateAt: Date;
-  /**
-   * @example "https://example.com/image.jpg"
-   */
-  mainImageUrl?: string;
-  /**
-   * @example ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
-   */
-  subImageUrls?: string[];
-  /**
-   * @example "grunge", "minimalist",
-   */
-  style?: string;
-  /**
-   * @example { "top" -> TaggedItem {..}, "bottom" -> TaggedItem {..} }
-   */
-  taggedSection?: Record<string, TaggedItem>;
   /**
    * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
    */
   tags?: Record<string, string[]>;
-  /**
-   * @example "Description for the image"
-   */
-  description?: string;
-  /**
-   * @example { "background": ["#FFFFFF", "#000000"], "style": ["#FFFFFF", "#000000"] }
-   */
-  colorInfo?: ColorInfo;
-  /**
-   * @example "Source url"
-   */
-  source?: string;
 }
 
 /**
@@ -110,9 +62,9 @@ export interface ImageInfoV2 {
 export interface ArtistInfo {
   /**
    * Rule: Name should be in English.
-   * @example "Jennie"
+   * @example {"en": "Jennie", "kr": "제니"}
    */
-  name: string;
+  name: Record<string, string>;
   /**
    * @example "photographer"
    */
@@ -126,9 +78,9 @@ export interface ArtistInfo {
    */
   also_known_as?: string[];
   /**
-   * @example "Black Pink"
+   * @example {"en": "Black Pink", "kr": "블랙핑크"}
    */
-  group?: string;
+  group?: Record<string, string>;
   /**
    * @example { "instagram": "https://www.instagram.com/jennie/", "twitter": "https://twitter.com/jennie" }
    */
@@ -239,10 +191,6 @@ export interface ItemInfo {
    * @example "https://example.com/"
    */
   runway_url?: string;
-
-  /**
-   */
-  hyped: number;
   /**
    * @example "Demna Gvasalia"
    */
@@ -270,9 +218,9 @@ export interface ItemInfo {
 }
 
 export interface BrandInfo {
-  name: string;
+  name: Record<string, string>;
   category: string;
-  creativeDirector?: string[];
+  creativeDirector?: Record<string, string>[];
   websiteUrl?: string;
   logoImageUrl?: string;
   sns?: Record<string, string>;
@@ -325,7 +273,7 @@ interface HoverItemInfo {
   /**
    * @example Type would be `File` if it is new
    */
-  hoverItemImg?: File;
+  hoverItemImg?: File | string;
 }
 
 interface ColorInfo {
@@ -380,4 +328,12 @@ interface DetailPageState {
    * Extracted color info from image
    */
   colorInfo?: ColorInfo;
+}
+
+interface UploadImageState {
+  selectedImageUrl?: string;
+  hoverItems?: HoverItemInfo[];
+  imageFile?: File | string;
+  imageName?: string;
+  description?: string;
 }

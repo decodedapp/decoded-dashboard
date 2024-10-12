@@ -204,7 +204,7 @@ export class FirebaseHelper {
         let imageInfo = imageDoc.data() as ImageInfo;
         try {
           const hoverItemList = await Promise.all(
-            imageInfo.taggedItem?.map(async (item) => {
+            imageInfo.items?.map(async (item) => {
               const taggedItem = item as TaggedItem;
               const itemDoc = await this.doc("items", taggedItem.id);
               if (itemDoc.exists()) {
