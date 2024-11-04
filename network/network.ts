@@ -45,21 +45,22 @@ export class NetworkManager {
         return NetworkManager.instance;
     }
 
-    public async handleCreateDoc(collectionName: string, data: BrandInfo | ArtistInfo | UploadImageState) {
-        const convertedData = convertKeysToSnakeCase(data);
-        const url = `${this.config.db}/${collectionName}/upload`;
-        const res = await axios.post(url, convertedData, {
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-        return res;
-    }
-
-    public async uploadDataToStorage(file: string) {
-        const url = `${this.config.storage}?file=${file}`;
-        const res = await axios.post(url);
-        return res;
+    public async request(path: string, method: string, data: any) {
+        try{ 
+            const convertedData = convertKeysToSnakeCase(data);
+            const url = `${this.config.db}/api/${path}`;
+            const res = await axios.request({
+                url,
+                method,
+                data: convertedData,
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            return res.data;
+        } catch(e) {
+            throw new Error("Error on request => " + e);
+        }
     }
 }
 

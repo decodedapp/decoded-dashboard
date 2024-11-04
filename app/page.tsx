@@ -1,87 +1,25 @@
 "use client";
 import Image from "next/image";
-import {
-  useState,
-  ChangeEvent,
-  useEffect,
-  Dispatch,
-  SetStateAction,
-  useId,
-} from "react";
-import {
-  TaggedItem,
-  ItemInfo,
-  ImageInfo,
-  BrandInfo,
-  ArtistInfo,
-  HoverItemInfo,
-  FeaturedInfo,
-  Position,
-  UploadImageState,
-} from "@/types/model";
-import { FirebaseHelper } from "@/network/firebase";
-import {
-  ConvertImageAndCompress,
-  getByteSize,
-  create_doc_id,
-  validateEmail,
-  arrayBufferToBase64,
-  convertKeysToSnakeCase,
-} from "@/utils/util";
-import { sha256 } from "js-sha256";
-import { ArtistModal, BrandModal, ItemModal } from "@/app/components/modal";
+import { useState, useEffect, useRef } from "react";
 import { networkManager } from "@/network/network";
+import AdminLogin from "./components/login";
 
-function AdminLogin({
-  onLogin,
-}: {
-  onLogin: (email: string, password: string) => Promise<void>;
-}) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onLogin(email, password);
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col w-full h-screen justify-center items-center"
-    >
-      <h2 className="text-2xl mb-4">Welcome </h2>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="이메일"
-        required
-        className="border border-black p-2"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="비밀번호"
-        required
-        className="border border-black p-2 mt-2"
-      />
-      <button type="submit" className="mt-4">
-        로그인
-      </button>
-    </form>
-  );
-}
+type TabType = "requests" | "artists" | "brands";
 
 function AdminDashboard() {
+  const [currentTab, setCurrentTab] = useState<TabType>("requests");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDataAdded, setIsDataAdded] = useState(false);
-  const [brands, setBrands] = useState<string[] | null>(null);
-  const [artists, setArtists] = useState<string[] | null>(null);
-  const [items, setItems] = useState<ItemInfo[] | null>(null);
-  const [selectedTab, setSelectedTab] = useState("upload");
+  const tabs = [
+    { id: "requests", name: "요청/제공 관리" },
+    { id: "artists", name: "아티스트 요청" },
+    { id: "brands", name: "브랜드 요청" },
+  ] as const;
+
+  const handleLogin = () => {
+    setIsAdmin(true);
+    localStorage.setItem("isAdmin", "true");
+  };
 
   // Checking admin status
   useEffect(() => {
@@ -96,1357 +34,1076 @@ function AdminDashboard() {
     checkAdminStatus();
   }, []);
 
-  // Handling data
-  useEffect(() => {
-    const fetchData = async () => {
-      console.log("Fetching brands and artists...");
-      const artists: string[] = [];
-      const brands: string[] = [];
-      const items: ItemInfo[] = [];
-
-      Promise.all([
-        // FirebaseHelper.docs("brands"),
-        // FirebaseHelper.docs("artists"),
-        FirebaseHelper.docs("items"),
-      ]).then(([b, a, i]) => {
-        b.forEach((doc) => {
-          const brand = doc.data() as BrandInfo;
-          brands.push(brand.name);
-          setBrands(brands);
-        });
-        a.forEach((doc) => {
-          const artist = doc.data() as ArtistInfo;
-          artists.push(artist.name);
-          setArtists(artists);
-        });
-        i.forEach((doc) => {
-          const item = doc.data() as ItemInfo;
-          items.push(item);
-          setItems(items);
-        });
-        setIsDataAdded(false);
-      });
-    };
-    // fetchData();
-  }, [isAdmin, isDataAdded]);
-
-  const handleLogin = async (email: string, password: string) => {
-    const adminStatus = await FirebaseHelper.adminLogin(email, password);
-    if (adminStatus) {
-      setIsAdmin(true);
-      localStorage.setItem("isAdmin", "true");
-    } else {
-      alert("로그인 실패!");
-    }
-  };
-
   if (isLoading) {
-    return <div>로딩 중...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
   }
 
   if (!isAdmin) {
-    return <AdminLogin onLogin={handleLogin} />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full space-y-8 p-6 bg-white rounded-lg shadow-lg">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900">관리자 로그인</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              계속하려면 관리자 계정으로 로그인해주세요
+            </p>
+          </div>
+
+          <AdminLogin onLogin={handleLogin} />
+
+          <div className="text-center text-sm text-gray-500">
+            <p>관리자 권한이 필요한 페이지입니다</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-3 border border-black">
-        <div
-          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
-            selectedTab === "upload"
-              ? "bg-black text-white"
-              : "hover:bg-gray-300 bg-white"
-          }`}
-          onClick={() => setSelectedTab("upload")}
-        >
-          Upload
-        </div>
-        <div
-          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
-            selectedTab === "featured"
-              ? "bg-black text-white"
-              : "hover:bg-gray-300 bg-white"
-          }`}
-          onClick={() => setSelectedTab("featured")}
-        >
-          Featured
-        </div>
-        <div
-          className={`p-4 text-center cursor-pointer border border-black transition-colors ${
-            selectedTab === "request"
-              ? "bg-black text-white"
-              : "hover:bg-gray-300 bg-white"
-          }`}
-          onClick={() => setSelectedTab("request")}
-        >
-          Request
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <div className="py-6 px-4 sm:px-6 lg:px-8">
+            <h1 className="text-2xl font-bold text-gray-900">
+              관리자 대시보드
+            </h1>
+          </div>
         </div>
       </div>
-      <div className=" bg-white">
-        <div className={selectedTab === "upload" ? "block" : "hidden"}>
-          <UploadImageSection
-            brands={brands}
-            artists={artists}
-            items={items}
-            setIsDataAdded={setIsDataAdded}
-          />
-        </div>
-        <div className={selectedTab === "featured" ? "block" : "hidden"}>
-          <UploadFeaturedSection />
-        </div>
-        <div className={selectedTab === "request" ? "block" : "hidden"}>
-          <RequestListSection />
-        </div>
+
+      {/* Tab Navigation */}
+      <div className="mt-4 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8 justify-center">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setCurrentTab(tab.id)}
+              className={`
+                  py-4 px-1 border-b-2 font-medium text-sm
+                  ${
+                    currentTab === tab.id
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }
+                `}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-6">
+        {currentTab === "requests" && <RequestProvideSection />}
+        {currentTab === "artists" && <ArtistRequestSection />}
+        {currentTab === "brands" && <BrandRequestSection />}
       </div>
     </div>
   );
 }
 
-function UploadImageSection({
-  brands,
-  artists,
-  items,
-  setIsDataAdded,
-}: {
-  brands: string[] | null;
-  artists: string[] | null;
-  items: ItemInfo[] | null;
-  setIsDataAdded: (isDataAdded: boolean) => void;
-}) {
-  const [uploadImageState, setUploadImageState] = useState<UploadImageState>(
-    {}
-  );
-  const [isUploading, setIsUploading] = useState(false);
-  const [searchKeywords, setSearchKeywords] = useState<{
-    [key: number]: string;
-  }>({});
-  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(
-    null
-  );
-  const [isAdd, setIsAdd] = useState<{ [key: number]: boolean }>({});
-
-  const handleSearchKeyword = (index: number, keyword: string) => {
-    setSearchKeywords((prev) => ({ ...prev, [index]: keyword }));
-  };
-
-  const upload = async () => {
-    setIsUploading(true);
-    console.log(uploadImageState);
-    if (!uploadSanityCheck()) {
-      alert("Required fields are empty!");
-      setIsUploading(false);
-      return;
-    }
-    const image_file = uploadImageState?.imageFile! as File;
-    const buf = await image_file.arrayBuffer();
-    const base64 = arrayBufferToBase64(buf);
-    uploadImageState.imageFile = base64;
-    const itemImageFiles = await Promise.all(uploadImageState.hoverItems!.map(async (item) => 
-      { 
-        if (item.hoverItemImg) {
-          const f = item.hoverItemImg as File;
-          const buf = await f.arrayBuffer();
-          const base64 = arrayBufferToBase64(buf);
-          item.hoverItemImg = base64;
-          return item;
-        }
-        return item;
-      }));
-    uploadImageState.hoverItems = itemImageFiles;
-    await networkManager.handleUploadImage(convertKeysToSnakeCase(uploadImageState));
-    return;
-    const file = uploadImageState?.imageFile;
-    const hoverItemInfo = uploadImageState?.hoverItems;
-    // It is safe to force unwrap due to sanity check
-    const tags = await prepareTags(file!, hoverItemInfo!);
-    console.log(tags);
-    if (tags instanceof Error) {
-      alert("Error preparing tags!");
-      setIsUploading(false);
-      return false;
-    }
-    const requiredKeys = ["brands", "artists", "images", "items"];
-    if (!(await tagsSanityCheck(tags, requiredKeys))) {
-      alert("Invalid tags!");
-      setIsUploading(false);
-      return;
-    }
-    console.log("Tags Info: ", tags);
-    console.log("Handle hover item");
-    // "items"
-    let taggedItems = await handleUploadHoverItem(tags, requiredKeys);
-    if (taggedItems instanceof Error) {
-      console.error("Error saving hover item:", taggedItems);
-      alert("Error saving hover item!");
-      return;
-    }
-    console.log("Handle upload image");
-    // "images"
-    await handleUploadImage(tags, taggedItems);
-    return
-    console.log("Handle remain tags");
-    // "brands", "artists"
-    await handleRemain(tags, requiredKeys);
-    console.log("Upload: All Done! ✅");
-    reset();
-    setIsUploading(false);
-  };
-
-  const tagsSanityCheck = async (
-    tags: Record<string, string[]>,
-    requiredKeys: string[]
-  ): Promise<boolean> => {
-    // 1. Check whether required keys are in tags
-    const missingKeys = requiredKeys.filter((key) => !tags.hasOwnProperty(key));
-    if (missingKeys.length > 0) {
-      return false;
-    }
-    // 2. Check for duplicate in db
-    const imageDocExists = await FirebaseHelper.docExists(
-      "images",
-      tags["images"][0]
-    );
-    if (imageDocExists) {
-      // If image is already exist, then it is not good
-      return false;
-    }
-    const brandDocExists = tags["brands"].map(
-      async (b) => await FirebaseHelper.docExists("brands", b)
-    );
-    if (brandDocExists.some((b) => !b)) {
-      return false;
-    }
-    const artistDocExists = tags["artists"].map(
-      async (a) => await FirebaseHelper.docExists("artists", a)
-    );
-    if (artistDocExists.some((a) => !a)) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const uploadSanityCheck = (): boolean => {
-    if (!uploadImageState) {
-      return false;
-    }
-
-    const requiredFields = [
-      uploadImageState.imageName,
-      uploadImageState.imageFile,
-      uploadImageState.description,
-      uploadImageState.hoverItems,
-      uploadImageState.selectedImageUrl,
-    ];
-
-    if (requiredFields.some((field) => !field)) {
-      return false;
-    }
-
-    const hasValidHoverItems = uploadImageState.hoverItems!.every((item) => {
-      const { category, name, price } = item.info;
-      const isAdditionalInfoNeeded =
-        category !== "location" &&
-        category !== "furniture" &&
-        category !== "paint";
-      var hasCommonFields: boolean = true;
-      if (item.isNew) {
-        hasCommonFields =
-          item.artistName !== undefined &&
-          item.hoverItemImg !== undefined &&
-          name.length > 0 &&
-          category.length > 0 &&
-          (!isAdditionalInfoNeeded || item.brandName !== undefined);
-      }
-
-      if (isAdditionalInfoNeeded) {
-        return (
-          hasCommonFields && price && price[0].length > 0 && price[1].length > 0
-        );
-      } else {
-        return hasCommonFields;
-      }
-    });
-
-    return hasValidHoverItems;
-  };
-
-  const prepareTags = async (
-    file: File,
-    hoverItems: HoverItemInfo[]
-  ): Promise<Record<string, string[]> | Error> => {
-    const tags: Record<string, string[]> = {};
-    const artistNames: string[] = [];
-    for (let index = 0; index < hoverItems.length; index++) {
-      // Which item
-      const hoverItemInfo = hoverItems[index];
-      // Item Doc Id = Hash(item_name)
-      const item_doc_id = sha256(hoverItemInfo.info.name);
-      if (!artistNames.includes(hoverItemInfo.artistName!)) {
-        artistNames.push(hoverItemInfo.artistName!);
-      }
-      // Artist Doc Id = Hash(artist_name)
-      const artist_doc_id = sha256(hoverItemInfo.artistName!);
-      if (!hoverItemInfo.isNew) {
-        hoverItemInfo.brandName = hoverItemInfo.info.brands;
-      } else {
-        if (!hoverItemInfo.brandName) {
-          throw new Error("No brandName");
-        }
-      }
-      // Create brand doc ids related to this item
-      const brand_doc_ids =
-        hoverItemInfo.brandName?.map((b) => sha256(b)) ?? [];
-      // Item Doc Ids = { "items" => [] }
-      tags["items"] = Array.from(
-        new Set([...(tags["items"] || []), item_doc_id])
-      );
-      // Brand Doc Ids = { "brands" => [] }
-      tags["brands"] = Array.from(
-        new Set([...(tags["brands"] || []), ...brand_doc_ids])
-      );
-      // { item_doc_id => brands }
-      // Brands that related to this item
-      tags[item_doc_id] = brand_doc_ids;
-      // { artist_doc_id+"items" => [] }
-      // Items that related to this artist
-      tags[artist_doc_id + "items"] = [
-        ...(tags[artist_doc_id + "items"] || []),
-        item_doc_id,
-      ];
-      // What it does:
-      // { artist_doc_id+"brands" => [] }
-      // { brand_doc_id+"items" => [] }
-      // { brand_doc_id+"artists" => [] }
-      brand_doc_ids.forEach((b) => {
-        // Brand that related to artist
-        tags[artist_doc_id + "brands"] = [
-          ...(tags[artist_doc_id + "brands"] || []),
-          b,
-        ];
-        // Item that related to brand
-        tags[b + "items"] = [...(tags[b + "items"] || []), item_doc_id];
-        // Artist that related to brand
-        tags[b + "artists"] = [...(tags[b + "artists"] || []), artist_doc_id];
-      });
-    }
-    const image_doc_id = sha256(await file.arrayBuffer());
-    tags["images"] = [image_doc_id];
-    const artist_doc_id = artistNames.map((name) => create_doc_id(name));
-    tags["artists"] = Array.from(new Set(artist_doc_id));
-
-    return tags;
-  };
-
-  const handleItemInfo = async (
-    docExists: boolean,
-    itemDocId: string,
-    requiredKeys: string[],
-    tags: Record<string, string[]>,
-    hoverItem: HoverItemInfo
-  ): Promise<ItemInfo> => {
-    var itemInfo: ItemInfo;
-    const item_doc_id = sha256(hoverItem.info.name);
-    const brand_doc_ids = tags[item_doc_id];
-    hoverItem.info.tags = {
-      images: tags["images"],
-      brands: brand_doc_ids,
-      artists: tags["artists"],
-    };
-    if (docExists) {
-      // Get existed document
-      const existedItem = await FirebaseHelper.doc("items", itemDocId);
-      itemInfo = existedItem.data() as ItemInfo;
-      // Update tags
-      requiredKeys.forEach((key) => {
-        if (itemInfo.tags) {
-          // If tags already exists, concat new tags with old tags
-          var newTags = itemInfo.tags[key] ?? [];
-          newTags = Array.from(new Set(newTags.concat(tags[key])));
-          itemInfo.tags[key] = newTags;
-        } else {
-          // There's no tags info
-          itemInfo.tags = {
-            [key]: tags[key],
-          };
-        }
-      });
-    } else {
-      // No document for given 'itemDocId'
-      // Create new document
-      itemInfo = hoverItem.info;
-    }
-
-    return itemInfo;
-  };
-
-  const handleImageTags = (
-    tags: Record<string, string[]>,
-    imageInfo: ImageInfo
-  ) => {
-    imageInfo.tags = {
-      items: tags["items"],
-      brands: tags["brands"],
-      artists: tags["artists"],
-    };
-  };
-
-  const reset = () => {
-    setUploadImageState({});
-    setSelectedPointIndex(null);
-  };
-
-  const removePoint = (index: number) => {
-    const updatedHoverItems = uploadImageState?.hoverItems?.filter(
-      (_, itemIndex) => itemIndex !== index
-    );
-    if (updatedHoverItems?.length === 0) {
-      setUploadImageState((prev) => ({
-        ...prev,
-        hoverItems: undefined,
-      }));
-    } else {
-      setUploadImageState((prev) => ({
-        ...prev,
-        hoverItems: updatedHoverItems,
-      }));
-    }
-    setSelectedPointIndex(null);
-  };
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUploadImageState({});
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const fileURL = URL.createObjectURL(file);
-      setUploadImageState((prevState) => ({
-        ...prevState,
-        selectedImageUrl: fileURL,
-        imageFile: file,
-      }));
-    }
-  };
-
-  const handlePointClick = (event: React.MouseEvent<HTMLImageElement>) => {
-    const target = event.target as HTMLImageElement;
-    const rect = target.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const topPercent = `${((y / rect.height) * 100).toFixed(2)}%`;
-    const leftPercent = `${((x / rect.width) * 100).toFixed(2)}%`;
-
-    setUploadImageState((prevState) => ({
-      ...prevState,
-      hoverItems: [
-        ...(prevState?.hoverItems ?? []),
-        {
-          isNew: true,
-          pos: { top: topPercent, left: leftPercent },
-          info: {
-            name: "",
-            price: ["", ""],
-            hyped: 0,
-            affiliateUrl: "",
-            imageUrl: "",
-            category: "",
-            tags: {},
-            description: "",
-          },
-        },
-      ],
-    }));
-  };
-
-  const handleHoverItemInfo = (
-    index: number,
-    field: keyof ItemInfo | undefined,
-    isCurrency: boolean,
-    value: number | string | string[] | File
-  ) => {
-    setUploadImageState((prevState) => {
-      if (!prevState) return {}; // prevState가 null이면 아무 작업도 하지 않고 null을 반환
-
-      const hoverItems = prevState.hoverItems || [];
-      // prevState에서 hoverItems를 복사하여 새로운 배열을 생성
-      const updatedHoverItems = [...hoverItems];
-
-      // field 값에 따라 적절한 타입으로 값을 할당
-      if (field === "tags") {
-        return prevState; // tags는 여기서 처리하지 않음
-      } else if (field === "price") {
-        if (isCurrency) {
-          updatedHoverItems[index].info[field]![1] = value as string;
-        } else {
-          updatedHoverItems[index].info[field]![0] = value as string;
-        }
-      } else if (field === "brands") {
-        return prevState; // brands는 여기서 처리하지 않음
-      } else {
-        if (field) {
-          // Remaining fields
-          updatedHoverItems[index].info[field] = value as string;
-        } else {
-          if (value instanceof File) {
-            updatedHoverItems[index].hoverItemImg = value;
-          } else if (value instanceof Array) {
-            // Brands
-            updatedHoverItems[index].brandName = value as string[];
-          } else {
-            // Artist
-            updatedHoverItems[index].artistName = value as string;
-          }
-        }
-      }
-      // 업데이트된 hoverItems로 상태를 업데이트
-      return { ...prevState, hoverItems: updatedHoverItems };
-    });
-  };
-
-  // TODO: Duplicate doc ids
-  const handleRemain = async (
-    tags: Record<string, string[]>,
-    requiredKeys: string[]
-  ) => {
-    tags["brands"].forEach(async (b) => {
-      // Get existed brand document
-      // We can assume that brand document exists because we already checked it in `tagsSanityCheck` function
-      var brandInfo = (
-        await FirebaseHelper.doc("brands", b)
-      ).data() as BrandInfo;
-      requiredKeys.forEach((key) => {
-        // Skip for "brands"
-        if (key === "brands") return;
-        var custom_key: string;
-        if (key === "images") {
-          // Key = "images"
-          custom_key = key;
-        } else {
-          // e.g Key = "brand_doc_id" + "items"
-          // e.g Key = "brand_doc_id" + "artists"
-          custom_key = b + key;
-        }
-        if (brandInfo.tags) {
-          // If tags already exists, concat new tags with old tags
-          var newTags = brandInfo.tags[key] ?? [];
-          newTags = Array.from(new Set(newTags.concat(tags[custom_key])));
-          brandInfo.tags[key] = newTags;
-        } else {
-          // There's no tags info
-          brandInfo.tags = {
-            [key]: tags[custom_key],
-          };
-        }
-      });
-      await FirebaseHelper.setDoc("brands", b, brandInfo);
-    });
-    tags["artists"].forEach(async (a) => {
-      // We can assume artist exists on db
-      const artistInfo = (
-        await FirebaseHelper.doc("artists", a)
-      ).data() as ArtistInfo;
-      requiredKeys.forEach((key) => {
-        // Handled only "items", "brands", "images" tags. Skip for "artists"
-        if (key === "artists") return;
-        var custom_key: string;
-        if (key === "images") {
-          // "images"
-          custom_key = key;
-        } else {
-          // e.g  "artist_doc_id" + "items"
-          // e.g "artist_doc_id" + "brands"
-          custom_key = a + key;
-        }
-        if (artistInfo.tags) {
-          // 1. Get existed tags
-          var newTags = artistInfo.tags[key] ?? [];
-          // 2. Concat with new tags with given custom_key
-          newTags = Array.from(new Set(newTags.concat(tags[custom_key])));
-          // 3. Update tags info
-          artistInfo.tags[key] = newTags;
-        } else {
-          // No tag info in document
-          //
-          artistInfo.tags = {
-            [key]: tags[custom_key],
-          };
-        }
-      });
-      await FirebaseHelper.setDoc("artists", a, artistInfo);
-    });
-  };
-
-  const handleUploadImage = async (
-    tags: Record<string, string[]>,
-    taggedItems: TaggedItem[]
-  ) => {
-    var imageInfo: ImageInfo = {
-      title: uploadImageState?.imageName!,
-      description: uploadImageState?.description,
-      mainImageUrl: "",
-      items: taggedItems,
-      tags: {},
-    };
-    try {
-      handleImageTags(tags, imageInfo);
-      // Upload `imageInfo` to db
-      // await FirebaseHelper.setDoc("images", image_doc_id, imageInfo);
-      await networkManager.handleCreateDoc("image", imageInfo);
-      return;
-      const imageFile = await ConvertImageAndCompress(
-        uploadImageState?.imageFile! as File,
-        1,
-        1280
-      );
-      // path = "images/{image_doc_id}"
-      const image_doc_id = tags["images"][0];
-      const path = "images/" + image_doc_id;
-      // Upload image to storage
-      let res = await FirebaseHelper.uploadDataToStorage(path, imageFile);
-      imageInfo.mainImageUrl = await FirebaseHelper.downloadUrl(res.ref);
-      console.log(
-        "Original File Size (KB):",
-        (uploadImageState?.imageFile!.size! / 1024).toFixed(2)
-      );
-      console.log(
-        "Compressed File Size (KB):",
-        (imageFile.size / 1024).toFixed(2)
-      );
-      alert("Image uploaded successfully!");
-    } catch (error) {
-      console.error("Error saving image detail:", error);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleUploadHoverItem = async (
-    tags: Record<string, string[]>,
-    requiredKeys: string[]
-  ): Promise<TaggedItem[] | Error> => {
-    var taggedItems: TaggedItem[] = [];
-    const hoverItems = uploadImageState?.hoverItems!;
-    for (let index = 0; index < hoverItems.length; index++) {
-      const itemDocId = tags["items"][index];
-      console.log("Set document for ", itemDocId);
-      const docExists = await FirebaseHelper.docExists("items", itemDocId);
-      const hoverItemImg = hoverItems[index].hoverItemImg;
-      var hoverItem = hoverItems[index];
-
-      // Storage name => {item_doc_id}
-      const storage_file_name = itemDocId;
-      // Upload item if it is new
-      // Handle image such as converting to webp and uploading to db
-      if (hoverItem.isNew) {
-        if (
-          hoverItemImg &&
-          (hoverItemImg as File).type.includes("jpeg") ||
-            (hoverItemImg as File).type.includes("png") ||
-            (hoverItemImg as File).type.includes("webp") ||
-            (hoverItemImg as File).type.includes("avif")
-        ) {
-          try {
-            if (!docExists) {
-              console.log("Trying to convert to webp...");
-              const itemImage = await ConvertImageAndCompress(
-                hoverItemImg as File,
-                1,
-                1280
-              );
-              console.log("Convert & Compress done!");
-              console.log("Creating storage ref items/", storage_file_name);
-              // TODO: Duplicate check
-              if (await FirebaseHelper.docExists("items", storage_file_name)) {
-                alert("Item already exists!");
-                return new Error("Item already exists!");
-              }
-              const uploadRes = await FirebaseHelper.uploadDataToStorage(
-                "items/" + storage_file_name,
-                itemImage
-              );
-              const downloadUrl = await FirebaseHelper.downloadUrl(
-                uploadRes.ref
-              );
-              hoverItem.info.imageUrl = downloadUrl;
-              // Update brands for item
-              hoverItem.info.brands = hoverItem.brandName;
-            }
-          } catch (error) {
-            console.error("Error saving item image:", error, hoverItem);
-            alert("Error saving item image!");
-            return new Error("Error saving item image!");
-          }
-        } else {
-          alert(
-            "Image file format is not valid! Should be either jpeg, png, webp, avif"
-          );
-          setIsUploading(false);
-          return new Error("Image file format is not valid!");
-        }
-      }
-      // Update itemInfo based on whether document exists or not
-      const itemInfo = await handleItemInfo(
-        docExists,
-        itemDocId,
-        requiredKeys,
-        tags,
-        hoverItem
-      );
-      await FirebaseHelper.setDoc("items", itemDocId, itemInfo);
-      console.log("Done!");
-      taggedItems.push({ id: itemDocId, pos: hoverItem.pos });
-    }
-    return taggedItems;
-  };
-
-  const filteredBrands = (index: number) => {
-    if (!brands) return [];
-    if (!searchKeywords[index]) return brands;
-    return brands.filter((brand) =>
-      brand.toLowerCase().includes(searchKeywords[index]?.toLowerCase() || "")
-    );
-  };
-
+const RequestProvideSection = () => {
+  const [selectedTab, setSelectedTab] = useState("request");
   return (
-    <div className="overflow-y-scroll">
-      <div className="flex flex-col lg:flex-row items-center justify-center overflow-y-scroll">
-        <div className="flex flex-col w-full lg:w-[50%]">
-          <input
-            type="file"
-            onChange={handleImageChange}
-            className="mb-2 p-2"
-          />
-          {/* Image Section */}
-          {uploadImageState?.selectedImageUrl && (
-            <div className="relative w-full h-[60vh] aspect-w-3 aspect-h-4">
-              <Image
-                src={uploadImageState?.selectedImageUrl}
-                alt="Featured fashion"
-                fill={true}
-                style={{ objectFit: "cover" }}
-                onClick={handlePointClick}
-              />
-              {uploadImageState?.hoverItems?.map((item, index) => (
-                <div
-                  key={index}
-                  className={`absolute w-3 h-3 bg-white border border-black rounded-full cursor-pointer ${
-                    index === selectedPointIndex
-                      ? "opacity-100 point-animation"
-                      : "opacity-50"
-                  }`}
-                  style={{
-                    top: item.pos.top,
-                    left: item.pos.left,
-                  }}
-                  onClick={() => setSelectedPointIndex(index)}
-                ></div>
-              ))}
-            </div>
-          )}
-        </div>
-        {/* HoverItem Section */}
-        <div className="flex-1 w-full h-[80vh]">
-          <div className="flex">
-            {uploadImageState?.hoverItems?.map((_item, index) => (
-              <div
-                key={index}
-                className={`w-5 h-5 rounded-full border border-black m-2 p-1 cursor-pointer items-center justify-center ${
-                  index === selectedPointIndex ? "bg-black text-white" : ""
-                }`}
-                onClick={() => setSelectedPointIndex(index)}
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="grid grid-cols-2">
+          <button
+            className={`
+          py-4 text-center text-sm font-medium transition-all duration-200
+          ${
+            selectedTab === "request"
+              ? "bg-black text-white"
+              : "text-gray-700 hover:bg-gray-50"
+          }
+          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
+        `}
+            onClick={() => setSelectedTab("request")}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <p className="text-sm">{index}</p>
-              </div>
-            ))}
-          </div>
-          {uploadImageState?.hoverItems?.map((item, index) => (
-            <div
-              key={index}
-              className={`flex flex-col justify-between p-2 ${
-                index === selectedPointIndex ? "block" : "hidden"
-              }`}
-              onClick={() => setSelectedPointIndex(index)}
-            >
-              <div>
-                <p className="text-md font-bold">Artist</p>
-                <div className="flex justify-center mt-2">
-                  <select
-                    multiple={false}
-                    className="input border border-black w-full dark:bg-white"
-                    value={item.artistName}
-                    onChange={(e) => {
-                      handleHoverItemInfo(
-                        index,
-                        undefined,
-                        false,
-                        e.target.value
-                      );
-                    }}
-                  >
-                    {artists?.map((artist, index) => (
-                      <option key={index} value={artist}>
-                        {artist
-                          .split("_")
-                          .map(
-                            (word) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="ml-2 text-black border border-black w-[100px] rounded-lg"
-                    onClick={() =>
-                      (
-                        document.getElementById(
-                          `artist_modal_${index}`
-                        ) as HTMLDialogElement
-                      )?.showModal()
-                    }
-                  >
-                    +
-                  </button>
-                  <ArtistModal setIsDataAdded={setIsDataAdded} id={index} />
-                </div>
-                <p className="text-md font-bold mt-2">Item Detail</p>
-                <CustomDropdown
-                  items={items}
-                  pos={uploadImageState.hoverItems?.[index].pos}
-                  index={index}
-                  setIsAdd={setIsAdd}
-                  setUploadImageState={setUploadImageState}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
-                {isAdd[index] && (
-                  <>
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      value={item.info.name}
-                      onChange={(e) => {
-                        handleHoverItemInfo(
-                          index,
-                          "name",
-                          false,
-                          e.target.value
-                        );
-                      }}
-                      className="input border border-black w-full mb-2 dark:bg-white"
-                    />
-                    <div className="flex">
-                      <input
-                        type="text"
-                        placeholder="Price"
-                        value={item.info.price?.[0]}
-                        onChange={(e) => {
-                          handleHoverItemInfo(
-                            index,
-                            "price",
-                            false,
-                            e.target.value
-                          );
-                        }}
-                        className="input border border-black w-full mb-2 dark:bg-white"
-                      />
-                      <select
-                        value={item.info.price?.[1]}
-                        onChange={(e) => {
-                          handleHoverItemInfo(
-                            index,
-                            "price",
-                            true,
-                            e.target.value
-                          );
-                        }}
-                        className="input w-20 mb-2 dark:bg-white"
-                      >
-                        {Object.values(Currency).map((currency) => (
-                          <option key={currency} value={currency}>
-                            {currency}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="URL"
-                      value={item.info.affiliateUrl}
-                      onChange={(e) => {
-                        handleHoverItemInfo(
-                          index,
-                          "affiliateUrl",
-                          false,
-                          e.target.value
-                        );
-                      }}
-                      className="input border border-black w-full mb-2 dark:bg-white"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Designer"
-                      value={item.info.designedBy}
-                      onChange={(e) => {
-                        handleHoverItemInfo(
-                          index,
-                          "designedBy",
-                          false,
-                          e.target.value
-                        );
-                      }}
-                      className="input border border-black w-full mb-2 dark:bg-white"
-                    />
-                    <div className="flex">
-                      <select
-                        value={item.info.category}
-                        onChange={(e) => {
-                          handleHoverItemInfo(
-                            index,
-                            "category",
-                            false,
-                            e.target.value
-                          );
-                        }}
-                        className="input border border-black w-full mb-2 dark:bg-white"
-                      >
-                        {Object.values(ItemCategory).map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <p className="text-md font-bold">Item Brand</p>
-                    <div className="my-2">
-                      <input
-                        type="text"
-                        placeholder="브랜드 검색..."
-                        className="input border border-black w-full mb-2 dark:bg-white"
-                        value={searchKeywords[index] || ""} // 초기값을 빈 문자열로 설정
-                        onChange={(e) => {
-                          setSearchKeywords((prev) => ({
-                            ...prev,
-                            [index]: e.target.value,
-                          }));
-                        }}
-                      />
-                      <div className="flex">
-                        <select
-                          multiple={true}
-                          className="input border border-black w-full dark:bg-white"
-                          value={item.brandName || []} // 초기값을 빈 배열로 설정
-                          onChange={(e) => {
-                            const selectedOptions = Array.from(
-                              e.target.selectedOptions,
-                              (option) => option.value
-                            );
-                            handleHoverItemInfo(
-                              index,
-                              undefined,
-                              false,
-                              selectedOptions
-                            );
-                          }}
-                        >
-                          {filteredBrands(index)?.map((brand, index) => (
-                            <option key={index} value={brand}>
-                              {brand
-                                .split("_")
-                                .map((word) => word.toUpperCase())
-                                .join(" ")}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          className="text-black border border-black rounded-lg w-[100px] ml-2"
-                          onClick={() =>
-                            (
-                              document.getElementById(
-                                `brand_modal_${index}`
-                              ) as HTMLDialogElement
-                            )?.showModal()
-                          }
-                        >
-                          +
-                        </button>
-                        <BrandModal
-                          setIsDataAdded={setIsDataAdded}
-                          id={index}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      <p className="text-md font-bold">Item Image</p>
-                      <input
-                        type="file"
-                        onChange={(e) =>
-                          handleHoverItemInfo(
-                            index,
-                            undefined,
-                            false,
-                            e.target.files![0]
-                          )
-                        }
-                        className="mt-2 w-full dark:bg-white"
-                      />
-                    </div>
-                  </>
-                )}
+              </svg>
+              <span>Request</span>
+            </div>
+          </button>
+          <button
+            className={`
+          py-4 text-center text-sm font-medium transition-all duration-200
+          ${
+            selectedTab === "provide"
+              ? "bg-black text-white"
+              : "text-gray-700 hover:bg-gray-50"
+          }
+          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
+        `}
+            onClick={() => setSelectedTab("provide")}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
+                />
+              </svg>
+              <span>Provide</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="mt-6">
+        <div
+          className={`
+      bg-white rounded-lg shadow
+      ${selectedTab === "request" ? "block" : "hidden"}
+    `}
+        >
+          <RequestListSection />
+        </div>
+        <div
+          className={`
+      bg-white rounded-lg shadow
+      ${selectedTab === "provide" ? "block" : "hidden"}
+    `}
+        >
+          {/* Provide Section Content */}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArtistRequestSection = () => {
+  return (
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <h2 className="text-lg font-semibold mb-4">아티스트 요청 목록</h2>
+      <div className="bg-white shadow rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                아티스트명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                카테고리
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                요청일
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {/* 아티스트 요청 목록 데이터 매핑 */}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+const BrandRequestSection = () => {
+  return (
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <h2 className="text-lg font-semibold mb-4">브랜드 요청 목록</h2>
+      <div className="bg-white shadow rounded-lg">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                브랜드명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                요청일
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {/* 브랜드 요청 목록 데이터 매핑 */}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+type ItemClass = "Fashion" | "Furniture" | "Art";
+type ItemCategory =
+  | "Clothing"
+  | "Accessories"
+  | "Sneakers"
+  | "Chair"
+  | "Table"
+  | "Lighting"
+  | "Painting"
+  | "Sculpture"
+  | "Photography";
+
+interface Point {
+  x: number;
+  y: number;
+  itemClass?: ItemClass;
+  category?: ItemCategory;
+}
+
+const categoryByClass: Record<ItemClass, ItemCategory[]> = {
+  Fashion: ["Clothing", "Accessories", "Sneakers"],
+  Furniture: ["Chair", "Table", "Lighting"],
+  Art: ["Painting", "Sculpture", "Photography"],
+};
+
+function RequestListSection() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+  // State of navigation
+  const [isStepComplete, setIsStepComplete] = useState(false);
+  // State of step1
+  const [selectedCeleb, setSelectedCeleb] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // State of step2
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  // State of step2
+  const [context, setContext] = useState("");
+  // State of step3
+  const [points, setPoints] = useState<Point[]>([]);
+
+  useEffect(() => {
+    switch (currentStep) {
+      case 1:
+        setIsStepComplete(!!selectedCeleb);
+        break;
+      case 2:
+        setIsStepComplete(!!selectedImage);
+        break;
+      case 3:
+        // 모든 포인트가 itemClass와 category를 가지고 있는지 확인
+        setIsStepComplete(
+          points.length > 0 &&
+            points.every((point) => point.itemClass && point.category)
+        );
+        break;
+      default:
+        setIsStepComplete(false);
+    }
+  }, [currentStep, selectedCeleb, selectedImage, points]);
+
+  // TODO: Submit to backend
+  const handleSubmit = () => {
+    console.log(points);
+  };
+
+  // Next Button Component
+  const NextButton = () => (
+    <button
+      onClick={() => setCurrentStep((prev) => prev + 1)}
+      disabled={!isStepComplete}
+      className={`
+        px-6 py-2 rounded-md text-sm font-medium
+        transition-all duration-200
+        ${
+          isStepComplete
+            ? "bg-black text-white hover:bg-gray-800"
+            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+        }
+      `}
+    >
+      다음
+    </button>
+  );
+
+  // Previous Button Component
+  const PrevButton = () => (
+    <button
+      onClick={() => setCurrentStep((prev) => prev - 1)}
+      className="px-6 py-2 rounded-md text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
+    >
+      이전
+    </button>
+  );
+
+  const StepIndicator = () => (
+    <div className="w-full mb-20">
+      <div className="relative pt-1">
+        <div className="absolute top-5 w-full">
+          <div className="h-1 bg-gray-100">
+            <div
+              className="h-1 bg-yellow-400 transition-all duration-500"
+              style={{
+                width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
+              }}
+            ></div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          {[...Array(totalSteps)].map((_, index) => (
+            <div key={index} className="relative">
+              <div
+                className={`
+                w-10 h-10 rounded-full flex items-center justify-center
+                ${
+                  currentStep > index + 1
+                    ? "bg-black text-white"
+                    : currentStep === index + 1
+                    ? "bg-yellow-400"
+                    : "bg-gray-200"
+                }
+              `}
+              >
+                {index + 1}
               </div>
             </div>
           ))}
         </div>
       </div>
-      {uploadImageState?.selectedImageUrl && (
-        <div className="m-2">
-          <p className="text-md font-bold">Additional Info</p>
-          <input
-            type="text"
-            placeholder="Image Title (e.g Rose in NYC)"
-            value={uploadImageState?.imageName ?? ""}
-            onChange={(e) =>
-              setUploadImageState({
-                ...uploadImageState,
-                imageName: e.target.value,
-              })
-            }
-            className="input border border-black w-full mb-2 dark:bg-white"
-          />
-          {/* TODO: Replace with generated by LLM */}
-          <input
-            type="text"
-            placeholder="Description"
-            value={uploadImageState?.description ?? ""}
-            onChange={(e) => {
-              const inputText = e.target.value;
-              setUploadImageState({
-                ...uploadImageState,
-                description: inputText,
-              });
-            }}
-            className="input border border-black w-full mb-2 dark:bg-white"
-          />
-          <button
-            onClick={upload}
-            className="bg-white border border-black w-full p-2 mt-4"
-          >
-            {isUploading ? (
-              <span className="loading loading-spinner loading-md"></span>
-            ) : (
-              "Upload"
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
-}
 
-function UploadFeaturedSection() {
-  const [featuredImage, setFeaturedImage] = useState<File | null>(null);
-  const [featuredInfo, setFeaturedInfo] = useState<FeaturedInfo>({
-    imageUrl: "",
-    title: "",
-    description: "",
-    category: "",
-    images: [],
-  });
+  const Step1 = () => {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [newCeleb, setNewCeleb] = useState({ name: "", category: "KPOP" });
+    const [celebs, setCelebs] = useState<{ name: string; category: string }[]>(
+      []
+    );
+    useEffect(() => {
+      // TODO: Fetch from an API or database
+    }, []);
 
-  const handleFeaturedInfo = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFeaturedInfo((prevInfo) => {
-      return {
-        ...prevInfo,
-        [e.target.name]: e.target.value,
-      };
-    });
-  };
+    const filteredCelebs = celebs.filter((celeb) =>
+      celeb.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-  return (
-    <div className="flex flex-col p-2 min-h-[100vh]">
-      <input
-        type="file"
-        onChange={(e) => setFeaturedImage(e.target.files![0])}
-        className="mb-4"
-      />
-      {featuredImage && (
-        <div className="flex w-full">
-          <div className="flex relative w-[50%] h-[40vh]">
-            <Image
-              src={URL.createObjectURL(featuredImage)}
-              alt="Featured fashion"
-              fill={true}
-              style={{ objectFit: "cover" }}
-            />
-          </div>
-          <div className="flex flex-col w-[50%] pl-4">
-            <input
-              type="text"
-              name="title"
-              placeholder="Title"
-              value={featuredInfo.title}
-              onChange={handleFeaturedInfo}
-              className="input border border-black w-full mb-2 dark:bg-white"
-            />
-            <textarea
-              name="description"
-              placeholder="Description"
-              value={featuredInfo.description}
-              onChange={handleFeaturedInfo}
-              className="input border border-black w-full mb-2 h-24 dark:bg-white"
-            />
-            <input
-              type="text"
-              name="category"
-              placeholder="Category"
-              value={featuredInfo.category}
-              onChange={handleFeaturedInfo}
-              className="input border border-black w-full mb-2 dark:bg-white"
-            />
-            <input
-              type="text"
-              name="images"
-              placeholder="Additional Images (comma-separated URLs)"
-              value={featuredInfo.images.join(",")}
-              onChange={(e) =>
-                setFeaturedInfo((prevInfo) => ({
-                  ...prevInfo,
-                  images: e.target.value.split(",").map((url) => url.trim()),
-                }))
-              }
-              className="input border border-black w-full mb-2 dark:bg-white"
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+    const handleCelebRequest = (celeb: { name: string; category: string }) => {
+      // TODO: Submit to backend
+    };
 
-interface Request {
-  request_id: string;
-  description: string;
-  name: string;
-  status: string;
-}
+    return (
+      <div className="relative min-h-screen space-y-8">
+        <h2 className="text-3xl font-bold text-center mb-8">
+          어떤 셀럽의 아이템을 찾고 계신가요?
+        </h2>
 
-function RequestListSection() {
-  const [requests, setRequests] = useState<Request[]>([]);
-
-  return (
-    <div className="p-2 m-10">
-      {/* 데스크톱 뷰 */}
-      <div className="hidden md:block">
-        <table className="table-auto w-full mt-4">
-          <thead>
-            <tr>
-              <th className="px-4 py-2">요청 ID</th>
-              <th className="px-4 py-2">설명</th>
-              <th className="px-4 py-2">이름</th>
-              <th className="px-4 py-2">상태</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.length > 0 ? (
-              requests.map((request) => (
-                <tr key={request.request_id}>
-                  <td className="border px-4 py-2">{request.request_id}</td>
-                  <td className="border px-4 py-2">{request.description}</td>
-                  <td className="border px-4 py-2">{request.name}</td>
-                  <td className="border px-4 py-2">{request.status}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="p-20 text-center text-gray-500 text-xl"
-                >
-                  NO DATA
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 모바일 뷰 */}
-      <div className="md:hidden">
-        {requests.length > 0 ? (
-          requests.map((request) => (
-            <div
-              key={request.request_id}
-              className="bg-white shadow-md rounded-lg mb-4 p-4"
-            >
-              <p>
-                <strong>요청 ID:</strong> {request.request_id}
-              </p>
-              <p>
-                <strong>설명:</strong> {request.description}
-              </p>
-              <p>
-                <strong>이름:</strong> {request.name}
-              </p>
-              <p>
-                <strong>상태:</strong> {request.status}
-              </p>
-            </div>
-          ))
-        ) : (
-          <div className="text-center text-gray-500 text-xl p-10">NO DATA</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CustomDropdown({
-  items,
-  pos,
-  index,
-  setIsAdd,
-  setUploadImageState,
-}: {
-  items: ItemInfo[] | null;
-  pos: Position | undefined;
-  index: number;
-  setIsAdd: Dispatch<
-    SetStateAction<{
-      [key: number]: boolean;
-    }>
-  >;
-  setUploadImageState: Dispatch<SetStateAction<UploadImageState>>;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ItemInfo | null>(null);
-  const [isSelect, setIsSelect] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  const toggleDropdown = () => setIsOpen(!isOpen);
-
-  const handleSelect = (item: ItemInfo) => {
-    setSelectedItem(item);
-    setIsOpen(false);
-    setIsSelect(true);
-    setUploadImageState((prev) => {
-      if (!prev) return {};
-
-      const hoverItems = prev.hoverItems || [];
-      const copy = [...hoverItems];
-      copy[index].isNew = false;
-      copy[index].pos = pos!;
-      copy[index].info = item;
-      return { ...prev, hoverItems: copy };
-    });
-  };
-
-  const clearSelection = () => {
-    setSelectedItem(null);
-    setIsSelect(false);
-    setIsAdd((prev) => ({ ...prev, [index]: false }));
-    setUploadImageState((prev) => {
-      if (!prev) return {};
-
-      const hoverItems = prev.hoverItems || [];
-      hoverItems.splice(index, 1);
-      return { ...prev, hoverItems };
-    });
-  };
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = items?.slice(indexOfFirstItem, indexOfLastItem);
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={toggleDropdown}
-        className="input border border-black w-full dark:bg-white"
-      >
-        {selectedItem ? selectedItem.name : "Select Item"}
-      </button>
-      {isOpen && (
-        <>
-          <ul className="absolute z-10 w-full bg-white border border-gray-300">
-            {currentItems?.map((item, idx) => (
-              <li
-                key={idx}
-                className="flex items-center p-2 cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSelect(item)}
+        <div className="max-w-md mx-auto">
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <Image
-                  src={item.imageUrl ?? ""}
-                  alt={item.name}
-                  width={30}
-                  height={30}
-                  style={{ marginRight: "10px", width: "30px", height: "30px" }}
-                  className="border border-black"
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
-                <div>
-                  <p>{item.name}</p>
-                </div>
-              </li>
-            ))}
-            <div className="flex justify-evenly mt-2 ">
-              <button
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="btn bg-[#FF204E]"
-              >
-                이전
-              </button>
-              <button
-                onClick={() => paginate(currentPage + 1)}
-                disabled={
-                  items
-                    ? currentPage === Math.ceil(items.length / itemsPerPage)
-                    : true
-                }
-                className="btn bg-[#FF204E]"
-              >
-                다음
-              </button>
+              </svg>
             </div>
-          </ul>
-        </>
-      )}
-      <div className="flex justify-between w-full">
-        <button
-          className={`text-black btn bg-white mb-2 mt-2 w-60 hover:text-white`}
-          onClick={() =>
-            setIsAdd((prev) => ({ ...prev, [index]: !prev[index] }))
-          }
-        >
-          ADD ITEM
-        </button>
-        <button
-          className={`text-black btn bg-white mb-2 mt-2 ml-2 hover:text-white`}
-          onClick={clearSelection}
-        >
-          CLEAR
-        </button>
+            <input
+              type="text"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              placeholder="셀럽 이름을 검색해주세요"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          {/* Search Result */}
+          {searchQuery && (
+            <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+              {filteredCelebs.length > 0 ? (
+                <div className="divide-y divide-gray-200">
+                  {filteredCelebs.map((celeb, index) => (
+                    <div
+                      key={index}
+                      className={`p-4 cursor-pointer transition-colors
+                        ${
+                          selectedCeleb === celeb.name
+                            ? "bg-yellow-50"
+                            : "hover:bg-gray-50"
+                        }`}
+                      onClick={() => setSelectedCeleb(celeb.name)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {celeb.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {celeb.category}
+                          </p>
+                        </div>
+                        {selectedCeleb === celeb.name && (
+                          <svg
+                            className="h-5 w-5 text-yellow-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-gray-500 mb-4">
+                    찾으시는 셀럽이 목록에 없나요?
+                  </p>
+                  {!showAddForm ? (
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="text-blue-500 hover:text-blue-700"
+                    >
+                      셀럽 추가 요청하기
+                    </button>
+                  ) : (
+                    <div className="max-w-md mx-auto p-4 border rounded-lg">
+                      <h3 className="font-bold mb-3">셀럽 추가 요청</h3>
+                      <input
+                        type="text"
+                        placeholder="셀럽 이름"
+                        className="w-full p-2 border rounded mb-2"
+                        value={newCeleb.name}
+                        onChange={(e) =>
+                          setNewCeleb({ ...newCeleb, name: e.target.value })
+                        }
+                      />
+                      <select
+                        className="w-full p-2 border rounded mb-4"
+                        value={newCeleb.category}
+                        onChange={(e) =>
+                          setNewCeleb({ ...newCeleb, category: e.target.value })
+                        }
+                      >
+                        <option value="KPOP">K-POP</option>
+                        <option value="ACTOR">배우</option>
+                        <option value="ATHLETE">운동선수</option>
+                      </select>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setShowAddForm(false)}
+                          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                        >
+                          취소
+                        </button>
+                        <button
+                          onClick={() => handleCelebRequest(newCeleb)}
+                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+                          disabled={!newCeleb.name}
+                        >
+                          추가 요청하기
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2">
+                        * 요청하신 셀럽 정보는 검토 후 24시간 이내에 반영됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Selected Celeb Display */}
+          {selectedCeleb && !searchQuery && (
+            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">{selectedCeleb}</p>
+                  <p className="text-sm text-gray-500">선택됨</p>
+                </div>
+                <button
+                  onClick={() => setSelectedCeleb(null)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const Step2 = () => {
+    const [dragActive, setDragActive] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleDrag = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.type === "dragenter" || e.type === "dragover") {
+        setDragActive(true);
+      } else if (e.type === "dragleave") {
+        setDragActive(false);
+      }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFiles(e.dataTransfer.files[0]);
+      }
+    };
+
+    const handleFiles = (file: File) => {
+      setImageFile(file);
+      const fileUrl = URL.createObjectURL(file);
+      setSelectedImage(fileUrl);
+    };
+
+    return (
+      <div className="space-y-8">
+        <div className="max-w-md mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-2">
+            {selectedCeleb}의 사진을 업로드해주세요
+          </h2>
+          <p className="text-gray-500">
+            아이템 식별에 도움이 될 만한 선명한 사진을 올려주세요
+          </p>
+        </div>
+
+        <div className="max-w-md mx-auto space-y-6">
+          {!selectedImage ? (
+            <div
+              className={`
+                relative 
+                aspect-[3/4]
+                rounded-lg 
+                border-2 
+                border-dashed 
+                transition-all
+                ${
+                  dragActive
+                    ? "border-yellow-400 bg-yellow-50"
+                    : "border-gray-300 bg-gray-50"
+                }
+              `}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <input
+                ref={inputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFiles(e.target.files[0]);
+                  }
+                }}
+                accept="image/*"
+              />
+
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <div className="mb-4">
+                  <svg
+                    className={`w-12 h-12 mb-3 ${
+                      dragActive ? "text-yellow-400" : "text-gray-400"
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                </div>
+
+                <p
+                  className={`mb-2 text-lg ${
+                    dragActive ? "text-yellow-600" : "text-gray-600"
+                  }`}
+                >
+                  {dragActive
+                    ? "여기에 놓아주세요!"
+                    : "이미지를 드래그하여 업로드하거나"}
+                </p>
+
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                >
+                  컴퓨터에서 선택
+                </button>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  PNG, JPG, GIF (최대 10MB)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="relative aspect-[3/4] rounded-lg overflow-hidden">
+                <Image
+                  src={selectedImage}
+                  alt="Selected preview"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setImageFile(null);
+                  }}
+                  className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70"
+                >
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Context Information Input Section */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    컨텍스트 정보
+                  </label>
+                  <textarea
+                    placeholder="예: 인천공항 출국길, 2024 SS 패션위크, 신곡 뮤직비디오 등"
+                    value={context}
+                    onChange={(e) => setContext(e.target.value)}
+                    className="w-full p-3 border rounded-lg resize-none h-24 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>모르는 경우 건너뛰기 가능</span>
+                  <span className="text-right">{context.length}/200자</span>
+                </div>
+
+                {/* Preview of Input Information */}
+                {context && (
+                  <div className="bg-white p-3 rounded-lg border border-gray-200">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="w-5 h-5 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">{context}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Help Section */}
+        <div className="max-w-md mx-auto">
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-yellow-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  업로드 팁
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>선명하고 깨끗한 사진일수록 아이템 식별이 쉬워요</li>
+                    <li>가능한 전신 사진을 올려주시면 좋아요</li>
+                    <li>컨텍스트 정보는 아이템을 찾는데 큰 도움이 됩니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const Step3 = () => {
+    const imageRef = useRef<HTMLDivElement>(null);
+
+    const handleImageClick = (e: React.MouseEvent) => {
+      if (!imageRef.current) return;
+
+      const rect = imageRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      setPoints([...points, { x, y }]);
+    };
+
+    const removePoint = (index: number) => {
+      setPoints(points.filter((_, i) => i !== index));
+    };
+
+    const updatePointClass = (index: number, itemClass: ItemClass) => {
+      setPoints(
+        points.map((point, i) =>
+          i === index ? { ...point, itemClass, category: undefined } : point
+        )
+      );
+    };
+
+    const updatePointCategory = (index: number, category: ItemCategory) => {
+      setPoints(
+        points.map((point, i) => (i === index ? { ...point, category } : point))
+      );
+    };
+
+    return (
+      <div className="space-y-8">
+        <h2 className="text-3xl font-bold text-center mb-8">
+          궁금한 아이템을 선택해주세요
+        </h2>
+
+        <div className="max-w-2xl mx-auto space-y-2 text-gray-600">
+          <p className="text-sm">
+            이미지를 클릭하여 궁금한 아이템의 위치를 표시해주세요
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <p className="font-medium text-gray-900">필수 입력사항</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start space-x-2">
+                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                  1
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">아이템 선택</p>
+                  <p className="text-gray-600">
+                    최소 1개 이상의 아이템을 선택해주세요
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-2">
+                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                  2
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">아이템 종류</p>
+                  <p className="text-gray-600">
+                    Fashion, Furniture, Art 중 선택
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-2">
+                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                  3
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">상세 카테고리</p>
+                  <p className="text-gray-600">
+                    선택한 종류에 따른 세부 카테고리 선택
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+            <p className="font-medium">주의사항</p>
+            <ul className="mt-1 text-xs space-y-1 list-disc list-inside">
+              <li>최소 1개 이상의 아이템을 선택해야 합니다</li>
+              <li>
+                모든 선택한 아이템에 대해 종류와 카테고리를 지정해야 합니다
+              </li>
+              <li>위 조건이 모두 충족되어야 다음 단계로 진행할 수 있습니다</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="max-w-md mx-auto">
+          {selectedImage && (
+            <div
+              ref={imageRef}
+              className="relative aspect-[3/4] rounded-lg overflow-hidden cursor-crosshair"
+              onClick={handleImageClick}
+            >
+              <Image
+                src={selectedImage}
+                alt="Selected preview"
+                fill
+                className="object-cover"
+              />
+
+              {points.map((point, index) => (
+                <div
+                  key={index}
+                  className="absolute w-6 h-6 -ml-3 -mt-3 group"
+                  style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                >
+                  <div className="relative">
+                    <div className="absolute w-6 h-6 animate-ping rounded-full bg-yellow-400 opacity-75"></div>
+                    <div
+                      className={`
+                      relative w-6 h-6 rounded-full flex items-center justify-center
+                      ${
+                        point.itemClass && point.category
+                          ? "bg-green-400"
+                          : "bg-yellow-400"
+                      }
+                    `}
+                    >
+                      <span className="text-xs text-white font-bold">
+                        {index + 1}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePoint(index);
+                      }}
+                      className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full text-white 
+                        flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Selected Point List */}
+          {points.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <h3 className="font-medium text-gray-900">선택한 아이템</h3>
+              <div className="space-y-4">
+                {points.map((point, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gray-50 rounded-lg space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`
+                          w-5 h-5 rounded-full flex items-center justify-center
+                          ${
+                            point.itemClass && point.category
+                              ? "bg-green-400"
+                              : "bg-yellow-400"
+                          }
+                        `}
+                        >
+                          <span className="text-xs text-white font-bold">
+                            {index + 1}
+                          </span>
+                        </span>
+                        <span className="text-gray-600">
+                          아이템 {index + 1}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removePoint(index)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Class Selection */}
+                    <div className="flex gap-2">
+                      {(["Fashion", "Furniture", "Art"] as ItemClass[]).map(
+                        (itemClass) => (
+                          <button
+                            key={itemClass}
+                            onClick={() => updatePointClass(index, itemClass)}
+                            className={`
+                            px-3 py-1.5 rounded-full text-sm
+                            ${
+                              point.itemClass === itemClass
+                                ? "bg-black text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }
+                          `}
+                          >
+                            {itemClass}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    {/* Category Selection */}
+                    {point.itemClass && (
+                      <div className="flex gap-2 flex-wrap">
+                        {categoryByClass[point.itemClass].map((category) => (
+                          <button
+                            key={category}
+                            onClick={() => updatePointCategory(index, category)}
+                            className={`
+                              px-3 py-1.5 rounded-full text-sm
+                              ${
+                                point.category === category
+                                  ? "bg-yellow-400 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }
+                            `}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {points.length === 0 && (
+            <div className="mt-6 text-center text-gray-500">
+              이미지를 클릭하여 궁금한 아이템을 선택해주세요
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative min-h-screen">
+      <div className="max-w-4xl mx-auto p-6 pb-24">
+        <StepIndicator />
+        <div className="mt-8">
+          {currentStep === 1 && <Step1 />}
+          {currentStep === 2 && <Step2 />}
+          {currentStep === 3 && <Step3 />}
+        </div>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between">
+          <div>{currentStep > 1 && <PrevButton />}</div>
+          <div>
+            {currentStep < totalSteps && <NextButton />}
+            {currentStep === totalSteps && (
+              <button
+                onClick={handleSubmit}
+                disabled={!isStepComplete}
+                className={`
+                  px-6 py-2 rounded-md text-sm font-medium
+                  transition-all duration-200
+                  ${
+                    isStepComplete
+                      ? "bg-black text-white hover:bg-gray-800"
+                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  }
+                `}
+              >
+                완료
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-enum ItemCategory {
-  Clothing = "clothing",
-  Paint = "paint",
-  Furniture = "furniture",
-  Accessory = "accessory",
-  Shoes = "shoes",
-  Bag = "bag",
-  Location = "location",
-}
-
-enum Currency {
-  USD = "USD",
-  KRW = "KRW",
-  EUR = "EUR",
-  JPY = "JPY",
-  GBP = "GBP",
 }
 
 export default AdminDashboard;

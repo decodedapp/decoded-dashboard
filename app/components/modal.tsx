@@ -6,7 +6,7 @@ import { FirebaseHelper } from "@/network/firebase";
 import { setDoc, doc } from "firebase/firestore";
 import { sha256 } from "js-sha256";
 import { BrandInfo, ArtistInfo } from "@/types/model";
-import { ConvertImageAndCompress } from "@/utils/util";
+import { arrayBufferToBase64, ConvertImageAndCompress } from "@/utils/util";
 import { getDownloadURL } from "firebase/storage";
 import { HoverItemInfo } from "@/types/model";
 import { Button } from "@mui/material";
@@ -63,12 +63,14 @@ export const BrandModal = ({
   setIsDataAdded: (isDataAdded: boolean) => void;
   id: number;
 }) => {
-  const [brandName, setBrandName] = useState<Record<string, string>>({ en: '', kr: '' });
+  const [brandName, setBrandName] = useState<Record<string, string>>({
+    en: "",
+    ko: "",
+  });
   const [creativeDirectorEnInput, setCreativeDirectorEnInput] =
     useState<string>("");
   const [creativeDirectorKrInput, setCreativeDirectorKrInput] =
     useState<string>("");
-  const [brandCategory, setBrandCategory] = useState<string>("");
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [logoImage, setLogoImage] = useState<File>();
   const [sns, setSns] = useState<Record<string, string>>({});
@@ -78,14 +80,13 @@ export const BrandModal = ({
     };
 
   const defaultState = () => {
-    setBrandName({ en: '', kr: '' });
+    setBrandName({ en: "", ko: "" });
     setCreativeDirectorEnInput("");
     setCreativeDirectorKrInput("");
-    setBrandCategory("");
     setWebsiteUrl("");
     setLogoImage(undefined);
     setSns({});
-  }
+  };
 
   const upload = async () => {
     if (!brandName) {
@@ -94,7 +95,6 @@ export const BrandModal = ({
     }
 
     if (
-      !brandCategory ||
       !creativeDirectorEnInput ||
       !creativeDirectorKrInput ||
       !websiteUrl ||
@@ -117,26 +117,30 @@ export const BrandModal = ({
       .filter((name) => name !== "");
     const cd = creativeDirectorEnArray.map((en, i) => ({
       en: en,
-      kr: creativeDirectorKrArray[i]
+      ko: creativeDirectorKrArray[i],
     }));
     const newBrandInfo: BrandInfo = {
       name: brandName,
-      creativeDirector: cd,
-      category: brandCategory,
+      // cd: cd,
       websiteUrl: websiteUrl,
       // logoImageUrl: url,
       sns: sns,
       tags: {},
     };
-    const response = await networkManager.handleCreateDoc("brand", newBrandInfo);
-    const docId = response.data.data._id;
+    const response = await networkManager.request(
+      "upload/brand",
+      "POST",
+      newBrandInfo
+    );
+    console.log("Response", response);
+    const docId = response.data.id;
     const imageName = docId + ".webp";
     const path = "logos/" + imageName;
     // const res = await networkManager.uploadDataToStorage(path, imageFile);
     // const url = await getDownloadURL(res.ref);
     defaultState();
     alert("Brand document is added successfully!");
-  }
+  };
 
   return (
     <dialog
@@ -163,18 +167,24 @@ export const BrandModal = ({
               placeholder="Brand Name (English)"
               className="input input-bordered w-full mb-2 dark:bg-white"
               value={brandName.en}
-              onChange={(e) => setBrandName({ ...brandName, en: e.target.value })}
+              onChange={(e) =>
+                setBrandName({ ...brandName, en: e.target.value })
+              }
             />
             <input
               type="text"
               placeholder="Brand Name (Korean)"
               className="input input-bordered w-full mb-2 dark:bg-white"
               value={brandName.kr}
-              onChange={(e) => setBrandName({ ...brandName, kr: e.target.value })}
+              onChange={(e) =>
+                setBrandName({ ...brandName, ko: e.target.value })
+              }
             />
           </div>
           <div>
-            <p className=" text-md font-bold mb-2 text-black">Creative Director</p>
+            <p className=" text-md font-bold mb-2 text-black">
+              Creative Director
+            </p>
             <input
               type="text"
               placeholder="Creative Director (English)"
@@ -190,20 +200,6 @@ export const BrandModal = ({
               onChange={(e) => setCreativeDirectorKrInput(e.target.value)}
             />
           </div>
-        </div>
-        <div className="my-2">
-          <p className="text-md font-bold mb-2">Category</p>
-          <select
-            className="dark:bg-white w-full"
-            value={brandCategory}
-            onChange={(e) => setBrandCategory(e.target.value)}
-          >
-            {Object.values(BrandCategory).map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
         </div>
         <div className="my-2">
           <p className="text-md font-bold mb-2">Website</p>
@@ -261,11 +257,18 @@ export const ArtistModal = ({
   setIsDataAdded: (isDataAdded: boolean) => void;
   id: number;
 }) => {
-  const [artistName, setArtistName] = useState<Record<string, string>>({ en: '', kr: '' });
+  const [artistName, setArtistName] = useState<Record<string, string>>({
+    en: "",
+    ko: "",
+  });
   const [artistCategories, setArtistCategories] = useState<string[]>([]);
   const [aka, setAka] = useState<string[]>([]);
-  const [group, setGroup] = useState<Record<string, string>>({ en: '', kr: '' });
+  const [group, setGroup] = useState<Record<string, string>>({
+    en: "",
+    ko: "",
+  });
   const [snsUrls, setSnsUrls] = useState<Record<string, string>>({});
+  const [imageFile, setImageFile] = useState<File>();
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(
@@ -286,31 +289,40 @@ export const ArtistModal = ({
   };
 
   const defaultState = () => {
-    setArtistName({ en: '', kr: '' });
+    setArtistName({ en: "", ko: "" });
     setArtistCategories([]);
     setAka([]);
-    setGroup({ en: '', kr: '' });
+    setGroup({ en: "", ko: "" });
     setSnsUrls({});
     setIsDataAdded(true);
-  }
+  };
 
   const upload = async () => {
-    if (!artistName || artistCategories.length === 0) {
+    if (!artistName || artistCategories.length === 0 || !imageFile) {
       alert("필수 입력 항목을 입력해주세요.");
       return;
     }
+    const snsInfo = Object.entries(snsUrls).map(([platform, url]) => ({
+      platform: platform,
+      url: url,
+    }));
     const newArtistInfo: ArtistInfo = {
       name: artistName,
       category: artistCategories,
-      also_known_as: aka,
+      aka: aka,
       group: group,
-      sns: snsUrls,
-      tags: {},
+      snsInfo: snsInfo,
     };
-    await networkManager.handleCreateDoc("artist", newArtistInfo);
+    const buf = await imageFile.arrayBuffer();
+    const base64 = arrayBufferToBase64(buf);
+    const requestBody = {
+      artist_info: newArtistInfo,
+      image_file: base64,
+    };
+    await networkManager.request("upload/artist", "POST", requestBody);
     defaultState();
     alert("Artist is added successfully!");
-  }
+  };
 
   return (
     <dialog
@@ -330,23 +342,38 @@ export const ArtistModal = ({
         </button>
         <div>
           <p className="text-md font-bold mb-2 text-black">Artist Detail</p>
+          <div className="my-4">
+            <p className="text-md font-bold mb-2 text-black">Profile Image</p>
+            <input
+              type="file"
+              accept="image/*"
+              className="w-full dark:bg-white"
+              onChange={(e) =>
+                e.target.files && setImageFile(e.target.files[0])
+              }
+            />
+          </div>
           <div>
-          <p className="text-md font-bold mb-2 text-black">아티스트 이름</p>
-          <input
-            type="text"
-            placeholder="영어 이름 (예: Jennie)"
-            className="input input-bordered w-full mb-2 dark:bg-white"
-            value={artistName.en}
-            onChange={(e) => setArtistName({ ...artistName, en: e.target.value })}
-          />
-          <input
-            type="text"
-            placeholder="한국어 이름 (예: 제니)"
-            className="input input-bordered w-full mb-2 dark:bg-white"
-            value={artistName.kr}
-            onChange={(e) => setArtistName({ ...artistName, kr: e.target.value })}
-          />
-        </div>
+            <p className="text-md font-bold mb-2 text-black">아티스트 이름</p>
+            <input
+              type="text"
+              placeholder="영어 이름 (예: Jennie)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={artistName.en}
+              onChange={(e) =>
+                setArtistName({ ...artistName, en: e.target.value })
+              }
+            />
+            <input
+              type="text"
+              placeholder="한국어 이름 (예: 제니)"
+              className="input input-bordered w-full mb-2 dark:bg-white"
+              value={artistName.kr}
+              onChange={(e) =>
+                setArtistName({ ...artistName, ko: e.target.value })
+              }
+            />
+          </div>
           <div>
             <input
               type="text"
@@ -370,7 +397,7 @@ export const ArtistModal = ({
               placeholder="Group (Korean)"
               className="input input-bordered w-full mb-2 dark:bg-white"
               value={group.kr}
-              onChange={(e) => setGroup({ ...group, kr: e.target.value })}
+              onChange={(e) => setGroup({ ...group, ko: e.target.value })}
             />
           </div>
           <div>
@@ -433,29 +460,4 @@ enum ArtistCategory {
   KPop = "kpop",
   Rapper = "rapper",
   Producer = "producer",
-}
-
-enum BrandCategory {
-  Lux = "lux",
-  Street = "street",
-  Clothes = "clothes",
-  Sports = "sports",
-  Jewelry = "jewelry",
-  Watch = "watch",
-  Furniture = "furniture",
-  Magazine = "magzine",
-  Glasses = "glasses",
-  Accessory = "acccesory",
-  Shoes = "shoes",
-  Bag = "bag",
-  Paint = "paint",
-  Design = "design",
-  Art = "art",
-  Music = "music",
-  Beauty = "beauty",
-  Food = "food",
-  Games = "games",
-  Travel = "travel",
-  Entertainment = "entertainment",
-  Edit = "edit",
 }

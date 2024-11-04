@@ -50,6 +50,11 @@ export interface ImageInfo {
   tags?: Record<string, string[]>;
 }
 
+export interface SnsInfo {
+  platform: string;
+  url: string;
+}
+
 /**
  * The ArtistInfo interface defines the structure for artist information.
  * @param name The name of the artist.
@@ -76,7 +81,7 @@ export interface ArtistInfo {
   /**
    * @example ["Jenni", "JenDeuk", "제니"]
    */
-  also_known_as?: string[];
+  aka?: string[];
   /**
    * @example {"en": "Black Pink", "kr": "블랙핑크"}
    */
@@ -84,7 +89,7 @@ export interface ArtistInfo {
   /**
    * @example { "instagram": "https://www.instagram.com/jennie/", "twitter": "https://twitter.com/jennie" }
    */
-  sns?: Record<string, string>;
+  snsInfo?: SnsInfo[];
   /**
    * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
    */
@@ -219,8 +224,7 @@ export interface ItemInfo {
 
 export interface BrandInfo {
   name: Record<string, string>;
-  category: string;
-  creativeDirector?: Record<string, string>[];
+  cd?: Record<string, string>[];
   websiteUrl?: string;
   logoImageUrl?: string;
   sns?: Record<string, string>;
