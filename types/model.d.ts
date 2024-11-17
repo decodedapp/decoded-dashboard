@@ -73,7 +73,11 @@ export interface ArtistInfo {
   /**
    * @example "photographer"
    */
-  category: string[];
+  category: string;
+  /**
+   * @example "kr"
+   */
+  nationality?: string;
   /**
    * @example "https://example.com/image.jpg"
    */
@@ -334,10 +338,46 @@ interface DetailPageState {
   colorInfo?: ColorInfo;
 }
 
-interface UploadImageState {
-  selectedImageUrl?: string;
-  hoverItems?: HoverItemInfo[];
-  imageFile?: File | string;
-  imageName?: string;
-  description?: string;
+interface ImageDetail {
+  title: string;
+  description: string;
+  requestedItems: RequestedItem[];
+}
+
+interface RequestedItem {
+  itemClass: string;
+  category: string;
+  position: Position;
+}
+
+interface RequestImage {
+  title: string;
+  requestedItems: Record<string, RequestedItem[]>;
+  requestBy: string;
+  imageFile: string;
+  metadata: Record<string, string>;
+}
+
+enum SnsType {
+  Instagram = "instagram",
+  Youtube = "youtube",
+}
+
+type ItemClass = "Fashion" | "Furniture" | "Art";
+type ItemCategory =
+  | "Clothing"
+  | "Accessories"
+  | "Sneakers"
+  | "Chair"
+  | "Table"
+  | "Lighting"
+  | "Painting"
+  | "Sculpture"
+  | "Photography";
+
+interface Point {
+  x: number;
+  y: number;
+  itemClass?: ItemClass;
+  category?: ItemCategory;
 }

@@ -1,7 +1,14 @@
-import { UploadImageState, BrandInfo, ArtistInfo } from "@/types/model";
+import { BrandInfo, ArtistInfo } from "@/types/model";
 import { convertKeysToSnakeCase } from "@/utils/util";
 import { FirebaseApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
+import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
+import {
+  generateRandomness,
+  generateNonce,
+  jwtToAddress,
+} from "@mysten/zklogin";
+import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import axios from "axios";
 
 /**
@@ -19,6 +26,14 @@ export class NetworkManager {
             * @property {string} storage - Storage endpoint root URL
         */
         storage: string;
+                /**
+            * @property {string} auth_client_id - Google auth client ID
+        */
+                auth_client_id: string;
+                /**
+                    * @property {string} redirect_uri - Google redirect URI
+                */
+                redirect_uri: string;
     };
 
     private constructor() {
@@ -32,9 +47,14 @@ export class NetworkManager {
                 throw new Error("Environment variable is undefined");
             }
         }
+        if (process.env.NEXT_PUBLIC_AUTH_CLIENT_ID === undefined || process.env.NEXT_PUBLIC_REDIRECT_URI === undefined) {
+            throw new Error("Environment variable is undefined");
+        }
         this.config = {
             db: is_prod ? process.env.NEXT_PUBLIC_DB_ENDPOINT! : process.env.NEXT_PUBLIC_LOCAL_DB_ENDPOINT!,
             storage: is_prod ? process.env.NEXT_PUBLIC_STORAGE_ENDPOINT! : process.env.NEXT_PUBLIC_LOCAL_STORAGE_ENDPOINT!,
+            auth_client_id: process.env.NEXT_PUBLIC_AUTH_CLIENT_ID!,
+            redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI!,
         };
     }
 
@@ -60,6 +80,41 @@ export class NetworkManager {
             return res.data;
         } catch(e) {
             throw new Error("Error on request => " + e);
+        }
+    }
+
+    public async openIdConnectUrl(): Promise<{ sk: string, randomness: string, exp: number, url: string }> {
+        try {
+            const epk = Ed25519Keypair.generate();
+            const randomness = generateRandomness();
+            const rpcUrl = getFullnodeUrl("devnet");
+            const suiClient = new SuiClient({
+                url: rpcUrl,
+            });
+            const suiSysState = await suiClient.getLatestSuiSystemState();
+            const currentEpoch = suiSysState.epoch;
+            let maxEpoch: number = parseInt(currentEpoch) + 10;
+            const nonce = generateNonce(
+                epk.getPublicKey(),
+                maxEpoch,
+                randomness
+            );
+            const params = new URLSearchParams({
+                client_id: this.config.auth_client_id,
+                redirect_uri: this.config.redirect_uri,
+                response_type: "id_token",
+                scope: "openid",
+                nonce: nonce,
+            });
+            const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+            return {
+                sk: epk.getSecretKey(),
+                randomness: randomness,
+                exp: maxEpoch,
+                url: url,
+            };
+        } catch(err) {
+            throw new Error("Error on fetching nonce => " + err);
         }
     }
 }

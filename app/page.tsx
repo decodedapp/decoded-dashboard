@@ -1,10 +1,20 @@
 "use client";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import AdminLogin from "./components/login/login";
 import { networkManager } from "@/network/network";
-import AdminLogin from "./components/login";
+import { ArtistModal } from "./components/modal/artist";
+import { ImagePreviewModal } from "./components/modal/image";
+import {
+  RequestImage,
+  RequestedItem,
+  ItemClass,
+  ItemCategory,
+  Point,
+} from "@/types/model";
+import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
 
-type TabType = "requests" | "artists" | "brands";
+type TabType = "requests" | "images" | "artists" | "brands";
 
 function AdminDashboard() {
   const [currentTab, setCurrentTab] = useState<TabType>("requests");
@@ -12,13 +22,13 @@ function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const tabs = [
     { id: "requests", name: "요청/제공 관리" },
+    { id: "images", name: "이미지 요청" },
     { id: "artists", name: "아티스트 요청" },
     { id: "brands", name: "브랜드 요청" },
   ] as const;
 
   const handleLogin = () => {
     setIsAdmin(true);
-    localStorage.setItem("isAdmin", "true");
   };
 
   // Checking admin status
@@ -69,7 +79,10 @@ function AdminDashboard() {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1
+              className="text-2xl font-bold text-gray-900"
+              onClick={() => setIsAdmin(false)}
+            >
               관리자 대시보드
             </h1>
           </div>
@@ -100,6 +113,7 @@ function AdminDashboard() {
 
       <div className="mt-6">
         {currentTab === "requests" && <RequestProvideSection />}
+        {currentTab === "images" && <ImageRequestSection />}
         {currentTab === "artists" && <ArtistRequestSection />}
         {currentTab === "brands" && <BrandRequestSection />}
       </div>
@@ -198,16 +212,416 @@ const RequestProvideSection = () => {
   );
 };
 
-const ArtistRequestSection = () => {
+const ImageRequestSection = () => {
+  const [imageRequests, setImageRequests] = useState<any[]>([]);
+  console.log(imageRequests);
+  const [isLoading, setIsLoading] = useState(false);
+  const [openModalId, setOpenModalId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchImageRequests();
+  }, []);
+
+  const handleUploadImage = () => {
+    console.log("upload image");
+  };
+
+  const getModifiedData = (requestId: string) => {
+    const stored = sessionStorage.getItem(`modifiedRequest_${requestId}`);
+    return stored ? JSON.parse(stored) : null;
+  };
+
+  const fetchImageRequests = async () => {
+    setIsLoading(true);
+    try {
+      const res = await networkManager.request(
+        "requests?doc_type=image",
+        "GET",
+        null
+      );
+      const requests = convertKeysToCamelCase(res?.data.requests) || [];
+      const updatedRequests = requests.map((request: any) => {
+        const modifiedData = getModifiedData(request.Id);
+        if (modifiedData) {
+          return {
+            ...request,
+            doc: { ...request.doc, ...modifiedData },
+          };
+        }
+        return request;
+      });
+      setImageRequests(updatedRequests);
+    } catch (error) {
+      alert("이미지 요청 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRequest = async (requestId: string) => {
+    const isConfirmed = window.confirm("정말로 이 요청을 삭제하시겠습니까?");
+
+    if (isConfirmed) {
+      try {
+        await networkManager.request(
+          `delete/request?id=${requestId}`,
+          "DELETE",
+          null
+        );
+        fetchImageRequests();
+      } catch (error: any) {
+        console.error("요청 삭제 실패:", error);
+        alert("요청 삭제 중 오류가 발생했습니다.");
+      }
+    }
+  };
+
+  const handleUpdateRequest = (
+    requestId: string,
+    updatedDoc: {
+      title: string;
+      description: string;
+      style: string;
+      requestedItems: Record<string, RequestedItem[]>;
+      artist: string;
+    }
+  ) => {
+    sessionStorage.setItem(
+      `modifiedRequest_${requestId}`,
+      JSON.stringify(updatedDoc)
+    );
+
+    setImageRequests((prevRequests) =>
+      prevRequests.map((request) =>
+        request.Id === requestId
+          ? {
+              ...request,
+              doc: {
+                ...request.doc,
+                title: updatedDoc.title,
+                description: updatedDoc.description,
+                style: updatedDoc.style,
+                requestedItems: updatedDoc.requestedItems,
+              },
+              metadata: {
+                ...request.metadata,
+                subject: updatedDoc.artist,
+              },
+            }
+          : request
+      )
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <h2 className="text-lg font-semibold mb-4">아티스트 요청 목록</h2>
-      <div className="bg-white shadow rounded-lg">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">이미지 요청 목록</h2>
+        <button
+          onClick={fetchImageRequests}
+          disabled={isLoading}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+              새로고침 중...
+            </>
+          ) : (
+            <>
+              <svg
+                className="h-4 w-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              새로고침
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="bg-white shadow rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                이미지
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 아티스트명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                제목
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                설명
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                스타일
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                요청 아이템
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                요청일
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                작업
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {imageRequests?.map((request, index) => (
+              <React.Fragment key={index}>
+                <tr key={index} className="cursor-pointer hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="h-20 w-16 relative">
+                      <Image
+                        src={request.doc.imgUrl}
+                        alt={request.doc.title}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {request.metadata.subject}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {request.doc.title}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs truncate">
+                      {request.doc.description || "-"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {request.doc.style || "-"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {request.doc.requestedItems ? (
+                        Object.values(request.doc.requestedItems)
+                          .flat()
+                          .map((item: any, i: number) => (
+                            <div key={i} className="mb-1">
+                              {item.itemClass} - {item.category}
+                            </div>
+                          ))
+                      ) : (
+                        <div className="text-gray-500">요청된 아이템 없음</div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {new Date(request.requestedAt).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleUploadImage}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 rounded-md transition-colors duration-200"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                          />
+                        </svg>
+                        업로드
+                      </button>
+                      <button
+                        onClick={() => setOpenModalId(request.Id)}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 hover:text-white border border-green-600 hover:bg-green-600 rounded-md transition-colors duration-200"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        수정
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRequest(request.Id);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-white border border-red-600 hover:bg-red-600 rounded-md transition-colors duration-200"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+
+        {imageRequests?.map((request, index) => (
+          <ImagePreviewModal
+            key={`modal-${index}`}
+            isOpen={openModalId === request.Id}
+            onClose={() => setOpenModalId(null)}
+            request={{
+              imgUrl: request.doc.imgUrl,
+              title: request.doc.title,
+              description: request.doc.description || "",
+              style: request.doc.style || "",
+              requestedItems: request.doc.requestedItems,
+              artist: {
+                id: Object.keys(request.doc.requestedItems)[0],
+                name: request.metadata.subject,
+              },
+            }}
+            onUpdate={(updatedDoc) =>
+              handleUpdateRequest(request.Id, updatedDoc)
+            }
+          />
+        ))}
+
+        {imageRequests.length === 0 && !isLoading && (
+          <div className="text-center py-8 text-gray-500">
+            요청된 이미지가 없습니다.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ArtistRequestSection = () => {
+  const [artistRequests, setArtistRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchArtistRequests = async () => {
+    console.log("fetching artist requests");
+    setIsLoading(true);
+    try {
+      const res = await networkManager.request(
+        "requests?doc_type=artist",
+        "GET",
+        null
+      );
+      setArtistRequests(res?.data.requests || []);
+    } catch (error) {
+      console.error("요청 목록 조회 실패:", error);
+      alert("요청 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchArtistRequests();
+  }, []);
+
+  const handleDeleteRequest = async (requestId: string) => {
+    const isConfirmed = window.confirm("정말로 이 요청을 삭제하시겠습니까?");
+
+    if (isConfirmed) {
+      await networkManager
+        .request(`delete/request?id=${requestId}`, "DELETE", null)
+        .then(() => {
+          setArtistRequests((prevRequests) =>
+            prevRequests.filter((request) => request._id !== requestId)
+          );
+          alert("요청이 삭제되었습니다.");
+        })
+        .catch((error) => {
+          const errorMessage =
+            error.response?.data?.description ||
+            "요청 삭제 중 오류가 발생했습니다.";
+          console.error("요청 삭제 실패:", errorMessage);
+          alert(errorMessage);
+        });
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">아티스트 요청 목록</h2>
+        <button
+          onClick={fetchArtistRequests}
+          disabled={isLoading}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+              새로고침 중...
+            </>
+          ) : (
+            <>
+              <svg
+                className="h-4 w-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              새로고침
+            </>
+          )}
+        </button>
+      </div>
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                이름
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 카테고리
@@ -215,10 +629,51 @@ const ArtistRequestSection = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 요청일
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                작업
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* 아티스트 요청 목록 데이터 매핑 */}
+            {artistRequests.map((artist, index) => (
+              <tr key={index}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {artist.doc.name?.ko || "미지정"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {artist.doc.category || "미지정"}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {new Date(artist.requested_at).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap flex space-x-2">
+                  <button
+                    onClick={() =>
+                      (
+                        document.getElementById(
+                          `artist_modal_${index}`
+                        ) as HTMLDialogElement
+                      )?.showModal()
+                    }
+                    className="text-blue-600 hover:text-blue-900"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRequest(artist._id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    삭제
+                  </button>
+                  <ArtistModal
+                    id={index}
+                    requestId={artist._id}
+                    artistName={artist.doc.name}
+                    artistCategory={artist.doc.category}
+                  />
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -251,25 +706,6 @@ const BrandRequestSection = () => {
   );
 };
 
-type ItemClass = "Fashion" | "Furniture" | "Art";
-type ItemCategory =
-  | "Clothing"
-  | "Accessories"
-  | "Sneakers"
-  | "Chair"
-  | "Table"
-  | "Lighting"
-  | "Painting"
-  | "Sculpture"
-  | "Photography";
-
-interface Point {
-  x: number;
-  y: number;
-  itemClass?: ItemClass;
-  category?: ItemCategory;
-}
-
 const categoryByClass: Record<ItemClass, ItemCategory[]> = {
   Fashion: ["Clothing", "Accessories", "Sneakers"],
   Furniture: ["Chair", "Table", "Lighting"],
@@ -282,12 +718,13 @@ function RequestListSection() {
   // State of navigation
   const [isStepComplete, setIsStepComplete] = useState(false);
   // State of step1
-  const [selectedCeleb, setSelectedCeleb] = useState<string | null>(null);
+  const [selectedCeleb, setSelectedCeleb] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   // State of step2
   const [imageFile, setImageFile] = useState<File | null>(null);
-  // State of step2
-  const [context, setContext] = useState("");
   // State of step3
   const [points, setPoints] = useState<Point[]>([]);
 
@@ -300,7 +737,6 @@ function RequestListSection() {
         setIsStepComplete(!!selectedImage);
         break;
       case 3:
-        // 모든 포인트가 itemClass와 category를 가지고 있는지 확인
         setIsStepComplete(
           points.length > 0 &&
             points.every((point) => point.itemClass && point.category)
@@ -311,9 +747,73 @@ function RequestListSection() {
     }
   }, [currentStep, selectedCeleb, selectedImage, points]);
 
+  const usePersistedState = <T,>(key: string, initialState: T) => {
+    const [state, setState] = useState<T>(() => {
+      const storedValue = sessionStorage.getItem(key);
+      return storedValue ? JSON.parse(storedValue) : initialState;
+    });
+
+    useEffect(() => {
+      sessionStorage.setItem(key, JSON.stringify(state));
+    }, [key, state]);
+
+    return [state, setState] as const;
+  };
+
+  const [context] = usePersistedState("context", "");
+
+  const defaultState = () => {
+    setCurrentStep(1);
+    setSelectedCeleb(null);
+    setSelectedImage(null);
+    setImageFile(null);
+    setPoints([]);
+  };
+
   // TODO: Submit to backend
-  const handleSubmit = () => {
-    console.log(points);
+  const handleSubmit = async () => {
+    if (!selectedCeleb || !imageFile) {
+      alert("Please select a celebrity and upload an image");
+      return;
+    }
+    const title = `${context}에서의 ${selectedCeleb.name}`;
+    const items: RequestedItem[] = [];
+    for (const point of points) {
+      items.push({
+        itemClass: point.itemClass!,
+        category: point.category!,
+        position: {
+          top: point.y.toString(),
+          left: point.x.toString(),
+        },
+      });
+    }
+    const requestedItems: Record<string, RequestedItem[]> = {};
+    requestedItems[selectedCeleb.id] = items;
+    const buffer = await imageFile?.arrayBuffer();
+    const base64Image = arrayBufferToBase64(buffer);
+    const requestImage: RequestImage = {
+      title,
+      requestedItems,
+      requestBy: sessionStorage.getItem("USER_DOC_ID")!,
+      imageFile: base64Image,
+      metadata: {
+        subject: selectedCeleb.name,
+      },
+    };
+    console.log(requestImage);
+    networkManager
+      .request("request/image", "POST", requestImage)
+      .then(() => {
+        alert("요청이 완료되었습니다.");
+        defaultState();
+      })
+      .catch((error) => {
+        const errorMessage =
+          error.response?.data?.description || "요청 중 오류가 발생했습니다.";
+        console.error("요청 실패:", errorMessage);
+        alert(errorMessage);
+      });
   };
 
   // Next Button Component
@@ -384,21 +884,74 @@ function RequestListSection() {
 
   const Step1 = () => {
     const [searchQuery, setSearchQuery] = useState("");
+    const [loading, setLoading] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
-    const [newCeleb, setNewCeleb] = useState({ name: "", category: "KPOP" });
-    const [celebs, setCelebs] = useState<{ name: string; category: string }[]>(
-      []
-    );
+    const [newCeleb, setNewCeleb] = useState({
+      name: "",
+      category: "",
+      requestBy: "",
+    });
+    const [celebs, setCelebs] = useState<
+      {
+        name: string;
+        category: string;
+        id: string;
+      }[]
+    >([]);
     useEffect(() => {
-      // TODO: Fetch from an API or database
+      networkManager.request("artists", "GET", null).then((res) => {
+        for (const celeb of res.data.artists) {
+          setCelebs((prev) => [
+            ...prev,
+            { name: celeb.name.ko, category: celeb.category, id: celeb._id },
+          ]);
+        }
+      });
     }, []);
 
-    const filteredCelebs = celebs.filter((celeb) =>
-      celeb.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const onRequestComplete = () => {
+      setLoading(false);
+      setShowAddForm(false);
+      setNewCeleb({ name: "", category: "", requestBy: "" });
+    };
 
-    const handleCelebRequest = (celeb: { name: string; category: string }) => {
-      // TODO: Submit to backend
+    const filteredCelebs =
+      celebs.length > 0
+        ? celebs.filter((celeb) =>
+            celeb.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : [];
+
+    const handleCelebRequest = (celeb: {
+      name: string;
+      category: string;
+      requestBy: string;
+    }) => {
+      const address = sessionStorage.getItem("USER_DOC_ID");
+      if (!celeb.name || celeb.category === "") {
+        alert("Please fill in all fields");
+        return;
+      }
+      if (address) {
+        celeb.requestBy = address;
+        setLoading(true);
+        networkManager
+          .request("request/artist", "POST", celeb)
+          .then(() => {
+            alert("요청이 완료되었습니다.");
+            onRequestComplete();
+          })
+          .catch((error) => {
+            const errorMessage =
+              error.response?.data?.description ||
+              "요청중 오류가 발생했습니다.";
+            console.error("요청 실패:", errorMessage);
+            alert(errorMessage);
+            onRequestComplete();
+          });
+      } else {
+        alert("Please login first");
+      }
     };
 
     return (
@@ -444,11 +997,13 @@ function RequestListSection() {
                       key={index}
                       className={`p-4 cursor-pointer transition-colors
                         ${
-                          selectedCeleb === celeb.name
+                          selectedCeleb?.name === celeb.name
                             ? "bg-yellow-50"
                             : "hover:bg-gray-50"
                         }`}
-                      onClick={() => setSelectedCeleb(celeb.name)}
+                      onClick={() =>
+                        setSelectedCeleb({ id: celeb.id, name: celeb.name })
+                      }
                     >
                       <div className="flex items-center justify-between">
                         <div>
@@ -459,7 +1014,7 @@ function RequestListSection() {
                             {celeb.category}
                           </p>
                         </div>
-                        {selectedCeleb === celeb.name && (
+                        {selectedCeleb?.name === celeb.name && (
                           <svg
                             className="h-5 w-5 text-yellow-400"
                             fill="none"
@@ -509,9 +1064,9 @@ function RequestListSection() {
                           setNewCeleb({ ...newCeleb, category: e.target.value })
                         }
                       >
-                        <option value="KPOP">K-POP</option>
-                        <option value="ACTOR">배우</option>
-                        <option value="ATHLETE">운동선수</option>
+                        <option value="kpop">K-POP</option>
+                        <option value="actor">배우</option>
+                        <option value="athlete">운동선수</option>
                       </select>
                       <div className="flex gap-2 justify-end">
                         <button
@@ -525,7 +1080,13 @@ function RequestListSection() {
                           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
                           disabled={!newCeleb.name}
                         >
-                          추가 요청하기
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                            </>
+                          ) : (
+                            <span>추가 요청하기</span>
+                          )}
                         </button>
                       </div>
                       <p className="text-sm text-gray-500 mt-2">
@@ -543,7 +1104,9 @@ function RequestListSection() {
             <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{selectedCeleb}</p>
+                  <p className="font-medium text-gray-900">
+                    {selectedCeleb.name}
+                  </p>
                   <p className="text-sm text-gray-500">선택됨</p>
                 </div>
                 <button
@@ -575,6 +1138,7 @@ function RequestListSection() {
   const Step2 = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const [context, setContext] = usePersistedState("context", "");
 
     const handleDrag = (e: React.DragEvent) => {
       e.preventDefault();
@@ -606,7 +1170,7 @@ function RequestListSection() {
       <div className="space-y-8">
         <div className="max-w-md mx-auto text-center">
           <h2 className="text-3xl font-bold mb-2">
-            {selectedCeleb}의 사진을 업로드해주세요
+            {selectedCeleb?.name}의 사진을 업로드해주세요
           </h2>
           <p className="text-gray-500">
             아이템 식별에 도움이 될 만한 선명한 사진을 올려주세요
@@ -617,11 +1181,11 @@ function RequestListSection() {
           {!selectedImage ? (
             <div
               className={`
-                relative 
+                relative
                 aspect-[3/4]
-                rounded-lg 
-                border-2 
-                border-dashed 
+                rounded-lg
+                border-2
+                border-dashed
                 transition-all
                 ${
                   dragActive

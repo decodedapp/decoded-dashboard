@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { networkManager } from "@/network/network";
+import { usePathname } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
+import { jwtToAddress } from "@mysten/zklogin";
+import { hash } from "@/utils/util";
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -8,26 +13,55 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
+  const pathName = usePathname();
 
-    try {
-      // Mock login delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      onLogin();
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("로그인에 실패했습니다. 다시 시도해주세요.");
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    const hashTag = window.location.hash;
+    const login = async (token: string) => {
+      const decoded_jwt = jwtDecode(token);
+      const sub = decoded_jwt.sub;
+      const iss = decoded_jwt.iss;
+      const aud = decoded_jwt.aud;
+      if (sub && iss && aud) {
+        try {
+          const res = await networkManager.request(
+            "admin/login?id=" + hash(sub + iss + aud),
+            "GET",
+            {}
+          );
+          const sui_acc = jwtToAddress(token, res.data.salt);
+          window.sessionStorage.setItem("USER_DOC_ID", res.data.user);
+          window.sessionStorage.setItem("SUI_ACCOUNT", sui_acc);
+          onLogin();
+        } catch (err) {
+          alert(err);
+        } finally {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+    };
+    if (hashTag) {
+      const params = new URLSearchParams(hashTag.substring(1));
+      const token = params.get("id_token");
+      if (token) {
+        login(token);
+      }
     }
+  }, [pathName]);
+
+  const handleGoogleLogin = async () => {
+    const { sk, randomness, exp, url } =
+      await networkManager.openIdConnectUrl();
+    window.sessionStorage.setItem("EPK_SECRET", sk);
+    window.sessionStorage.setItem("RANDOMNESS", randomness);
+    window.sessionStorage.setItem("EXPIRED_AT", exp.toString());
+    window.location.replace(url);
   };
 
   return (
     <div className="h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm space-y-6">
-        {/* 헤더 */}
+        {/* Header */}
         <div>
           <h2 className="text-2xl font-bold text-center text-gray-900">
             관리자 로그인
@@ -38,7 +72,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
         </div>
 
         <div className="space-y-4">
-          {/* 에러 메시지 */}
+          {/* Error Message */}
           {error && (
             <div className="rounded-md bg-red-50 p-3">
               <div className="flex">
@@ -62,7 +96,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
             </div>
           )}
 
-          {/* 구글 로그인 버튼 */}
+          {/* Google Sign In Button */}
           <button
             onClick={handleGoogleLogin}
             disabled={isLoading}
@@ -133,7 +167,6 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
           </button>
         </div>
 
-        {/* 도움말 */}
         <div>
           <p className="text-center text-xs text-gray-500">
             관리자 권한이 필요한 페이지입니다
