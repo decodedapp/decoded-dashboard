@@ -197,7 +197,7 @@ const RequestProvideSection = () => {
       ${selectedTab === "request" ? "block" : "hidden"}
     `}
         >
-          <RequestListSection />
+          <RequestSection />
         </div>
         <div
           className={`
@@ -205,7 +205,7 @@ const RequestProvideSection = () => {
       ${selectedTab === "provide" ? "block" : "hidden"}
     `}
         >
-          {/* Provide Section Content */}
+          <ProvideSection />
         </div>
       </div>
     </div>
@@ -222,8 +222,29 @@ const ImageRequestSection = () => {
     fetchImageRequests();
   }, []);
 
-  const handleUploadImage = () => {
-    console.log("upload image");
+  const handleUploadImage = async (index: number) => {
+    const request = imageRequests[index];
+    const requestWithArrayStyle = {
+      ...request.doc,
+      style:
+        !request.doc.style || request.doc.style === ""
+          ? null
+          : [request.doc.style],
+    };
+    const uploadImage = {
+      imageBase: requestWithArrayStyle,
+      itemFields: null,
+    };
+    await networkManager
+      .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
+      .then(() => {
+        alert("이미지 업로드 완료");
+        fetchImageRequests();
+      })
+      .catch((err) => {
+        alert("이미지 업로드 실패");
+        console.error(err);
+      });
   };
 
   const getModifiedData = (requestId: string) => {
@@ -435,7 +456,7 @@ const ImageRequestSection = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={handleUploadImage}
+                        onClick={() => handleUploadImage(index)}
                         className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 rounded-md transition-colors duration-200"
                       >
                         <svg
@@ -712,7 +733,7 @@ const categoryByClass: Record<ItemClass, ItemCategory[]> = {
   Art: ["Painting", "Sculpture", "Photography"],
 };
 
-function RequestListSection() {
+function RequestSection() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
   // State of navigation
@@ -1665,6 +1686,284 @@ function RequestListSection() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface SaleInfo {
+  url: string;
+  price: string;
+  currency: string;
+  is_affiliated: boolean;
+  is_soldout: boolean;
+}
+
+interface ItemDetail<T> {
+  value: T;
+  requester_id: string;
+  provide_status: "requested" | "confirmed" | "finalized";
+}
+
+interface Item {
+  name?: ItemDetail<string>;
+  brand?: ItemDetail<string>;
+  designed_by?: ItemDetail<string>;
+  sale_info?: ItemDetail<SaleInfo>[];
+  image_url?: ItemDetail<string>;
+  item_class: string;
+  category: string;
+  sub_category?: ItemDetail<string>;
+  product_type?: ItemDetail<string>;
+  material?: ItemDetail<string>;
+  like: number;
+  description?: string;
+  created_at: string;
+  position: {
+    top: string;
+    left: string;
+  };
+}
+
+interface ImageDocument {
+  _id: string;
+  imgUrl: string;
+  items: Record<string, Item[]>;
+}
+
+const DecodingProgress = ({ progress }: { progress: number }) => {
+  const totalBlocks = 20;
+  const filledBlocks = Math.floor((progress / 100) * totalBlocks);
+
+  return (
+    <div className="mt-8 bg-[#1A1A1A] rounded-lg p-4">
+      <div className="flex justify-between items-center mb-2">
+        <div className="font-mono text-sm tracking-wider text-emerald-500">
+          DECODING..
+        </div>
+        <div className="font-mono text-sm text-emerald-500">{progress}%</div>
+      </div>
+
+      {/* 프로그레스 바 - 더 뚜렷한 펄스 효과 */}
+      <div className="flex gap-1 mb-4">
+        {[...Array(totalBlocks)].map((_, index) => (
+          <div
+            key={index}
+            className={`
+              h-4 flex-1 transition-all duration-300
+              ${
+                index < filledBlocks
+                  ? "bg-emerald-500 animate-progress-pulse"
+                  : "bg-zinc-700"
+              }
+            `}
+            style={{
+              animationDelay: `${index * 0.1}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="text-center text-sm text-gray-400">아이템 정보 요청</div>
+    </div>
+  );
+};
+
+function ProvideSection() {
+  const [images, setImages] = useState<ImageDocument[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(
+    null
+  );
+  const [saleUrl, setSaleUrl] = useState("");
+  const [selectedItem, setSelectedItem] = useState<{
+    imageId: string;
+    artistId: string;
+    itemIndex: number;
+    item: Item;
+  } | null>(null);
+
+  useEffect(() => {
+    fetchImages();
+  }, []);
+
+  const fetchImages = async () => {
+    try {
+      setIsLoading(true);
+      const response = await networkManager.request(
+        "images/decoding",
+        "GET",
+        null
+      );
+      const images = convertKeysToCamelCase(response.data.images);
+      setImages(images);
+    } catch (error) {
+      console.error("이미지 로딩 실패:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleProvideInfo = async () => {
+    if (!selectedItem || !saleUrl) return;
+
+    try {
+      await networkManager.request(
+        `provide/item?image_id=${selectedItem.imageId}&artist_id=${selectedItem.artistId}&item_index=${selectedItem.itemIndex}`,
+        "POST",
+        { sale_url: saleUrl }
+      );
+      alert("정보 제공이 완료되었습니다.");
+      setSaleUrl("");
+      setSelectedItem(null);
+      fetchImages(); // 목록 새로고침
+    } catch (error) {
+      console.error("정보 제공 실패:", error);
+      alert("정보 제공에 실패했습니다.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#111111] text-white">
+      {/* 상단 네비게이션 바 */}
+      <nav className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-[1400px] mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-bold">FASHION</h1>
+            <div className="flex gap-6">
+              <button className="text-white hover:text-blue-400 transition-colors">
+                ALL
+              </button>
+              <button className="text-gray-400 hover:text-blue-400 transition-colors">
+                FASHION
+              </button>
+              <button className="text-gray-400 hover:text-blue-400 transition-colors">
+                INTERIOR
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* 메인 컨텐츠 */}
+      <div className="max-w-[1400px] mx-auto p-6">
+        {images.map((image) => (
+          <div
+            key={image._id}
+            className="flex flex-col lg:flex-row gap-8 mb-12"
+          >
+            {/* 왼쪽: 이미지 섹션 */}
+            <div className="lg:w-[600px]">
+              <div className="relative w-full aspect-[3/4] group">
+                <Image
+                  src={image.imgUrl}
+                  alt="Fashion item"
+                  fill
+                  className="object-cover rounded-lg"
+                />
+                {/* 마커 애니메이션 효과 추가 */}
+                {Object.values(image.items)
+                  .flat()
+                  .map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                      style={{
+                        top: `${item.position.top}%`,
+                        left: `${item.position.left}%`,
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+                      <div className="relative w-full h-full bg-blue-500 rounded-full"></div>
+                    </div>
+                  ))}
+                {/* 이미지 오버레이 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+              </div>
+            </div>
+
+            {/* 오른쪽: 아이템 목록 섹션 */}
+            <div className="lg:flex-1 lg:max-w-full space-y-4 flex flex-col justify-between">
+              {Object.entries(image.items).map(([artistId, items]) => (
+                <div key={artistId} className="space-y-3">
+                  {items.map((item, index) => {
+                    const isRequestedStatus =
+                      !item.sale_info ||
+                      item.sale_info.every(
+                        (info) => info.provide_status === "requested"
+                      );
+
+                    if (!isRequestedStatus) return null;
+
+                    return (
+                      <div
+                        key={index}
+                        className="group flex items-center gap-4 bg-[#1A1A1A] p-4 rounded-lg border border-white/5 hover:border-white/10 transition-all hover:translate-x-1"
+                      >
+                        {/* 아이템 아이콘 */}
+                        <div className="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
+                          <span className="text-2xl">
+                            {item.item_class === "TOP"
+                              ? "👕"
+                              : item.item_class === "BOTTOM"
+                              ? "👖"
+                              : item.item_class === "SHOES"
+                              ? "👟"
+                              : "👜"}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-gray-400">
+                            {item.item_class}
+                          </div>
+                          <div className="font-medium truncate">
+                            {item.category}
+                          </div>
+                          <div className="text-sm text-gray-400 truncate">
+                            Bookworm Table
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm bg-[#252525] px-2.5 py-1 rounded-md font-medium">
+                            P 10
+                          </span>
+                          {isRequestedStatus && (
+                            <button
+                              onClick={() => {
+                                setSelectedItem({
+                                  imageId: image._id,
+                                  artistId,
+                                  itemIndex: index,
+                                  item,
+                                });
+                              }}
+                              className="text-blue-400 hover:text-blue-300 font-medium"
+                            >
+                              제공
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+
+              {/* Decoding Progress Bar */}
+              <DecodingProgress progress={50} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
