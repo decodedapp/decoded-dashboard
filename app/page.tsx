@@ -231,10 +231,7 @@ const ImageRequestSection = () => {
           ? null
           : [request.doc.style],
     };
-    const uploadImage = {
-      imageBase: requestWithArrayStyle,
-      itemFields: null,
-    };
+    const uploadImage = { imageBase: requestWithArrayStyle };
     await networkManager
       .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
       .then(() => {
@@ -1771,6 +1768,7 @@ const DecodingProgress = ({ progress }: { progress: number }) => {
 
 function ProvideSection() {
   const [images, setImages] = useState<ImageDocument[]>([]);
+  console.log(images);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(
     null
