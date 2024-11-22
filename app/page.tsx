@@ -5,13 +5,20 @@ import AdminLogin from "./components/login/login";
 import { networkManager } from "@/network/network";
 import { ArtistModal } from "./components/modal/artist";
 import { ImagePreviewModal } from "./components/modal/image";
+import { AddItemModal } from "./components/modal/add";
+import { ProvidePanel } from "./components/modal/provide";
 import {
   RequestImage,
   RequestedItem,
   ItemClass,
   ItemCategory,
   Point,
+  ItemDocument,
+  ImageDocument,
+  Item,
+  Position,
 } from "@/types/model";
+import { categoryByClass } from "@/constants/categories";
 import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
 
 type TabType = "requests" | "images" | "artists" | "brands";
@@ -722,12 +729,6 @@ const BrandRequestSection = () => {
       </div>
     </div>
   );
-};
-
-const categoryByClass: Record<ItemClass, ItemCategory[]> = {
-  Fashion: ["Clothing", "Accessories", "Sneakers"],
-  Furniture: ["Chair", "Table", "Lighting"],
-  Art: ["Painting", "Sculpture", "Photography"],
 };
 
 function RequestSection() {
@@ -1688,46 +1689,6 @@ function RequestSection() {
   );
 }
 
-interface SaleInfo {
-  url: string;
-  price: string;
-  currency: string;
-  is_affiliated: boolean;
-  is_soldout: boolean;
-}
-
-interface ItemDetail<T> {
-  value: T;
-  requester_id: string;
-  provide_status: "requested" | "confirmed" | "finalized";
-}
-
-interface Item {
-  name?: ItemDetail<string>;
-  brand?: ItemDetail<string>;
-  designed_by?: ItemDetail<string>;
-  sale_info?: ItemDetail<SaleInfo>[];
-  image_url?: ItemDetail<string>;
-  item_class: string;
-  category: string;
-  sub_category?: ItemDetail<string>;
-  product_type?: ItemDetail<string>;
-  material?: ItemDetail<string>;
-  like: number;
-  description?: string;
-  created_at: string;
-  position: {
-    top: string;
-    left: string;
-  };
-}
-
-interface ImageDocument {
-  _id: string;
-  imgUrl: string;
-  items: Record<string, Item[]>;
-}
-
 const DecodingProgress = ({ progress }: { progress: number }) => {
   const totalBlocks = 20;
   const filledBlocks = Math.floor((progress / 100) * totalBlocks);
@@ -1773,13 +1734,67 @@ function ProvideSection() {
   const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(
     null
   );
+  const [isAddMode, setIsAddMode] = useState<number | null>(null); // index로 변경
   const [saleUrl, setSaleUrl] = useState("");
+
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     imageId: string;
     artistId: string;
     itemIndex: number;
     item: Item;
   } | null>(null);
+
+  const [newItemPosition, setNewItemPosition] = useState<Position | null>(null);
+
+  const handleImageClick = (
+    index: number,
+    e: React.MouseEvent<HTMLDivElement>
+  ) => {
+    if (isAddMode !== index) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    setNewItemPosition({ left: x.toString(), top: y.toString() });
+  };
+
+  const handleAddItem = (itemClass: ItemClass, category: string) => {
+    // TODO: API 호출하여 새 아이템 추가
+    console.log("Adding new item:", {
+      itemClass,
+      category,
+      position: newItemPosition,
+    });
+    setNewItemPosition(null);
+  };
+
+  // 제공 버튼 클릭 핸들러
+  const handleProvideClick = (
+    imageId: string,
+    artistId: string,
+    itemIndex: number,
+    item: Item
+  ) => {
+    setSelectedItem({ imageId, artistId, itemIndex, item });
+    setIsOpen(true);
+  };
+
+  const calculateDecodingProgress = (items: Record<string, Item[]>) => {
+    // 모든 아이템을 하나의 배열로 합치기
+    const allItems = Object.values(items).flat();
+    console.log(allItems);
+    const totalItems = allItems.length;
+
+    if (totalItems === 0) return 0;
+
+    // isDecoded가 true인 아이템 개수 세기
+    const decodedItems = allItems.filter((item) => item.isDecoded).length;
+
+    // 퍼센트 계산 (소수점 반올림)
+    return Math.round((decodedItems / totalItems) * 100);
+  };
 
   useEffect(() => {
     fetchImages();
@@ -1851,117 +1866,246 @@ function ProvideSection() {
         </div>
       </nav>
 
-      {/* 메인 컨텐츠 */}
-      <div className="max-w-[1400px] mx-auto p-6">
-        {images.map((image) => (
-          <div
-            key={image._id}
-            className="flex flex-col lg:flex-row gap-8 mb-12"
-          >
-            {/* 왼쪽: 이미지 섹션 */}
-            <div className="lg:w-[600px]">
-              <div className="relative w-full aspect-[3/4] group">
-                <Image
-                  src={image.imgUrl}
-                  alt="Fashion item"
-                  fill
-                  className="object-cover rounded-lg"
-                />
-                {/* 마커 애니메이션 효과 추가 */}
-                {Object.values(image.items)
-                  .flat()
-                  .map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-                      style={{
-                        top: `${item.position.top}%`,
-                        left: `${item.position.left}%`,
-                      }}
+      {/* 컨텐츠 컨테이너 */}
+      <div className="relative w-full overflow-hidden">
+        {/* 메인 페이지 */}
+        <div
+          className={`transform transition-transform duration-300 ${
+            isOpen ? "-translate-x-full" : "translate-x-0"
+          }`}
+        >
+          {/* 메인 컨텐츠 */}
+          <div className="max-w-[1400px] mx-auto p-6">
+            {images.map((image, index) => (
+              <div
+                key={index}
+                className="flex flex-col lg:flex-row gap-8 mb-12"
+                onClick={(e) => handleImageClick(index, e)}
+              >
+                {/* 왼쪽: 이미지 섹션 */}
+                <div className="lg:w-[600px]">
+                  <div className="relative w-full aspect-[3/4] group">
+                    {/* 아이템 추가 버튼 수정 */}
+                    <button
+                      onClick={() =>
+                        setIsAddMode(isAddMode === index ? null : index)
+                      }
+                      className={`
+                    absolute top-4 right-4 z-10
+                    inline-flex items-center px-4 py-2 
+                    border border-transparent rounded-md shadow-sm 
+                    text-sm font-medium text-white
+                    transition-all duration-200
+                    ${
+                      isAddMode === index
+                        ? "bg-blue-600 border-blue-400 shadow-blue-500/30"
+                        : "bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                    }
+                    group
+                  `}
                     >
-                      <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-                      <div className="relative w-full h-full bg-blue-500 rounded-full"></div>
+                      <svg
+                        className={`
+                      h-4 w-4 mr-2
+                      ${
+                        isAddMode === index
+                          ? "rotate-45"
+                          : "group-hover:scale-110"
+                      }
+                      transition-transform duration-200
+                    `}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      아이템 추가
+                    </button>
+                    <Image
+                      src={image.imgUrl}
+                      alt="Fashion item"
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                    {isAddMode === index && newItemPosition && (
+                      <AddItemModal
+                        position={newItemPosition}
+                        onClose={() => setNewItemPosition(null)}
+                        onAdd={handleAddItem}
+                      />
+                    )}
+                    {/* 마커 애니메이션 효과 추가 */}
+                    {Object.values(image.items)
+                      .flat()
+                      .map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                          style={{
+                            top: `${item.position.top}%`,
+                            left: `${item.position.left}%`,
+                          }}
+                        >
+                          {/* 외부 링 애니메이션 */}
+                          <div className="absolute inset-0 border-2 border-white/30 rounded-full animate-ping"></div>
+
+                          {/* 내부 마커 */}
+                          <div className="relative w-full h-full">
+                            {/* 외부 원 */}
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-full border-2 border-white/50"></div>
+                            {/* 내부 원 */}
+                            <div className="absolute inset-[4px] bg-white rounded-full shadow-lg"></div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* 오른쪽: 아이템 목록 섹션 */}
+                <div className="lg:flex-1 lg:max-w-full space-y-4 flex flex-col justify-between">
+                  {Object.entries(image.items).map(([artistId, items], idx) => (
+                    <div key={idx} className="space-y-3">
+                      {items.map((itemDoc, index) => {
+                        const isRequestedStatus = !itemDoc.isDecoded;
+
+                        return (
+                          <div
+                            key={index}
+                            className="group flex items-center gap-4 bg-[#1A1A1A] p-4 rounded-lg border border-white/5 hover:border-white/10 transition-all hover:translate-x-1"
+                          >
+                            {/* 아이템 아이콘 */}
+                            <div className="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
+                              <div className="text-2xl grid grid-cols-3 gap-0.5 transform scale-[0.6]">
+                                <div className="w-2 h-2"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                                <div className="w-2 h-2"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                                <div className="w-2 h-2"></div>
+                                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                              </div>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm text-gray-400">
+                                {itemDoc.item.itemClass}
+                              </div>
+                              <div className="font-medium truncate">
+                                {itemDoc.item.category}
+                              </div>
+                              <div className="text-sm text-gray-400 truncate">
+                                {itemDoc.item.name?.value}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 bg-[#252525] px-2.5 py-1 rounded-md">
+                                {/* 픽셀 코인 아이콘 */}
+                                <div className="grid grid-cols-4 gap-px transform scale-[0.4]">
+                                  <div className="w-2 h-2"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2"></div>
+
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+
+                                  <div className="w-2 h-2"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
+                                  <div className="w-2 h-2"></div>
+                                </div>
+
+                                {/* 포인트 텍스트 */}
+                                <span className="text-sm font-medium">10</span>
+                              </div>
+                              {isRequestedStatus && (
+                                <button
+                                  onClick={() =>
+                                    handleProvideClick(
+                                      image._id,
+                                      artistId,
+                                      index,
+                                      itemDoc
+                                    )
+                                  }
+                                  className="text-blue-400 hover:text-blue-300 font-medium"
+                                >
+                                  제공
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
-                {/* 이미지 오버레이 */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+
+                  {/* Decoding Progress Bar */}
+                  <DecodingProgress
+                    progress={calculateDecodingProgress(image.items)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 제공 페이지 */}
+        <div
+          className={`absolute top-0 left-0 w-full min-h-screen transform transition-transform duration-300 bg-[#111111] ${
+            isOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          {selectedItem && (
+            <div className="max-w-[1400px] mx-auto p-6">
+              {/* 뒤로가기 버튼 */}
+              <button
+                onClick={() => setIsOpen(false)}
+                className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                돌아가기
+              </button>
+
+              {/* 제공 폼 컨텐츠 */}
+              <div className="h-full overflow-y-auto">
+                <ProvidePanel
+                  isOpen={isOpen}
+                  onClose={() => setIsOpen(false)}
+                  item={selectedItem?.item.item!}
+                  // onSubmit={handleProvideSubmit}
+                />
               </div>
             </div>
-
-            {/* 오른쪽: 아이템 목록 섹션 */}
-            <div className="lg:flex-1 lg:max-w-full space-y-4 flex flex-col justify-between">
-              {Object.entries(image.items).map(([artistId, items]) => (
-                <div key={artistId} className="space-y-3">
-                  {items.map((item, index) => {
-                    const isRequestedStatus =
-                      !item.sale_info ||
-                      item.sale_info.every(
-                        (info) => info.provide_status === "requested"
-                      );
-
-                    if (!isRequestedStatus) return null;
-
-                    return (
-                      <div
-                        key={index}
-                        className="group flex items-center gap-4 bg-[#1A1A1A] p-4 rounded-lg border border-white/5 hover:border-white/10 transition-all hover:translate-x-1"
-                      >
-                        {/* 아이템 아이콘 */}
-                        <div className="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
-                          <span className="text-2xl">
-                            {item.item_class === "TOP"
-                              ? "👕"
-                              : item.item_class === "BOTTOM"
-                              ? "👖"
-                              : item.item_class === "SHOES"
-                              ? "👟"
-                              : "👜"}
-                          </span>
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-gray-400">
-                            {item.item_class}
-                          </div>
-                          <div className="font-medium truncate">
-                            {item.category}
-                          </div>
-                          <div className="text-sm text-gray-400 truncate">
-                            Bookworm Table
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm bg-[#252525] px-2.5 py-1 rounded-md font-medium">
-                            P 10
-                          </span>
-                          {isRequestedStatus && (
-                            <button
-                              onClick={() => {
-                                setSelectedItem({
-                                  imageId: image._id,
-                                  artistId,
-                                  itemIndex: index,
-                                  item,
-                                });
-                              }}
-                              className="text-blue-400 hover:text-blue-300 font-medium"
-                            >
-                              제공
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-
-              {/* Decoding Progress Bar */}
-              <DecodingProgress progress={50} />
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     </div>
   );

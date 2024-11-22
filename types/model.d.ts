@@ -381,3 +381,58 @@ interface Point {
   itemClass?: ItemClass;
   category?: ItemCategory;
 }
+
+interface SaleInfo {
+  url: string;
+  price: string;
+  currency: string;
+  isAffiliated: boolean;
+  isSoldout: boolean;
+}
+
+interface ItemDetail<T> {
+  finalizedAt: string;
+  provideStatus: "requested" | "confirmed" | "finalized";
+  provider: string;
+  requester: string;
+  value: T;
+}
+
+interface ItemDocument {
+  name: ItemDetail<string>;
+  brand: ItemDetail<string>;
+  designedBy: ItemDetail<string>;
+  saleInfo: ItemDetail<SaleInfo[]>;
+  imageUrl: ItemDetail<string>;
+  itemClass: string;
+  category: string;
+  subCategory: ItemDetail<string>;
+  productType: ItemDetail<string>;
+  material: ItemDetail<string>;
+  like: number;
+  description: string;
+  createdAt: string;
+}
+
+interface Item {
+  category: string;
+  isDecoded: boolean;
+  item: ItemDocument;
+  position: {
+    top: string;
+    left: string;
+  };
+}
+
+interface ImageDocument {
+  _id: string;
+  decodedNum: Number;
+  description: string;
+  imgUrl: string;
+  items: Record<string, Item[]>;
+  like: Number;
+  source?: string;
+  style: string[];
+  title: string;
+  uploadBy: string;
+}
