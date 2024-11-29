@@ -10,15 +10,18 @@ import { ProvidePanel } from "./components/modal/provide";
 import {
   RequestImage,
   RequestedItem,
-  ItemClass,
-  ItemCategory,
   Point,
   ItemDocument,
   ImageDocument,
   Item,
   Position,
 } from "@/types/model";
-import { categoryByClass } from "@/constants/categories";
+import {
+  ItemClass,
+  ItemSubClass,
+  subClassesByClass,
+  categoriesBySubClass,
+} from "@/constants/categories";
 import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
 
 type TabType = "requests" | "images" | "artists" | "brands";
@@ -238,17 +241,32 @@ const ImageRequestSection = () => {
           ? null
           : [request.doc.style],
     };
-    const uploadImage = { imageBase: requestWithArrayStyle };
-    await networkManager
-      .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
-      .then(() => {
-        alert("이미지 업로드 완료");
-        fetchImageRequests();
-      })
-      .catch((err) => {
-        alert("이미지 업로드 실패");
-        console.error(err);
-      });
+    const isNew: boolean = request.isNew;
+    if (isNew) {
+      const uploadImage = { imageBase: requestWithArrayStyle };
+      await networkManager
+        .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
+        .then(() => {
+          alert("이미지 업로드 완료");
+          fetchImageRequests();
+        })
+        .catch((err) => {
+          alert("이미지 업로드 실패");
+          console.error(err);
+        });
+    } else {
+      const updateItem = {
+        requestBy: request.requestBy,
+        imageDocId: request.metadata.imageDocId,
+        items: request.doc.requestedItems,
+      };
+      await networkManager
+        .request(`update/items?id=${request.Id}`, "POST", updateItem)
+        .then(() => {
+          alert("아이템 업데이트 완료");
+          fetchImageRequests();
+        });
+    }
   };
 
   const getModifiedData = (requestId: string) => {
@@ -315,7 +333,7 @@ const ImageRequestSection = () => {
       `modifiedRequest_${requestId}`,
       JSON.stringify(updatedDoc)
     );
-
+    console.log(updatedDoc);
     setImageRequests((prevRequests) =>
       prevRequests.map((request) =>
         request.Id === requestId
@@ -444,7 +462,8 @@ const ImageRequestSection = () => {
                           .flat()
                           .map((item: any, i: number) => (
                             <div key={i} className="mb-1">
-                              {item.itemClass} - {item.category}
+                              {item.itemClass} - {item.itemSubClass} -
+                              {item.category}
                             </div>
                           ))
                       ) : (
@@ -746,6 +765,7 @@ function RequestSection() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   // State of step3
   const [points, setPoints] = useState<Point[]>([]);
+  console.log(points);
 
   useEffect(() => {
     switch (currentStep) {
@@ -789,7 +809,6 @@ function RequestSection() {
     setPoints([]);
   };
 
-  // TODO: Submit to backend
   const handleSubmit = async () => {
     if (!selectedCeleb || !imageFile) {
       alert("Please select a celebrity and upload an image");
@@ -798,9 +817,14 @@ function RequestSection() {
     const title = `${context}에서의 ${selectedCeleb.name}`;
     const items: RequestedItem[] = [];
     for (const point of points) {
+      if (!point.itemClass || !point.itemSubClass || !point.category) {
+        alert("Please select an item class, sub class, and category");
+        return;
+      }
       items.push({
-        itemClass: point.itemClass!,
-        category: point.category!,
+        itemClass: point.itemClass,
+        itemSubClass: point.itemSubClass,
+        category: point.category,
         position: {
           top: point.y.toString(),
           left: point.x.toString(),
@@ -820,7 +844,6 @@ function RequestSection() {
         subject: selectedCeleb.name,
       },
     };
-    console.log(requestImage);
     networkManager
       .request("request/image", "POST", requestImage)
       .then(() => {
@@ -1420,7 +1443,15 @@ function RequestSection() {
       );
     };
 
-    const updatePointCategory = (index: number, category: ItemCategory) => {
+    const updatePointSubClass = (index: number, itemSubClass: ItemSubClass) => {
+      setPoints(
+        points.map((point, i) =>
+          i === index ? { ...point, itemSubClass, category: undefined } : point
+        )
+      );
+    };
+
+    const updatePointCategory = (index: number, category: string) => {
       setPoints(
         points.map((point, i) => (i === index ? { ...point, category } : point))
       );
@@ -1611,25 +1642,51 @@ function RequestSection() {
                       )}
                     </div>
 
-                    {/* Category Selection */}
+                    {/* Sub Class Selection */}
                     {point.itemClass && (
                       <div className="flex gap-2 flex-wrap">
-                        {categoryByClass[point.itemClass].map((category) => (
+                        {subClassesByClass[point.itemClass].map((subClass) => (
                           <button
-                            key={category}
-                            onClick={() => updatePointCategory(index, category)}
+                            key={subClass}
+                            onClick={() => updatePointSubClass(index, subClass)}
                             className={`
                               px-3 py-1.5 rounded-full text-sm
                               ${
-                                point.category === category
+                                point.itemSubClass === subClass
                                   ? "bg-yellow-400 text-white"
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                               }
                             `}
                           >
-                            {category}
+                            {subClass}
                           </button>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Category Selection */}
+                    {point.itemSubClass && (
+                      <div className="flex gap-2 flex-wrap">
+                        {categoriesBySubClass[point.itemSubClass].map(
+                          (category) => (
+                            <button
+                              key={category}
+                              onClick={() =>
+                                updatePointCategory(index, category)
+                              }
+                              className={`
+                              px-3 py-1.5 rounded-full text-sm
+                              ${
+                                point.category === category
+                                  ? "bg-green-400 text-white"
+                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              }
+                            `}
+                            >
+                              {category}
+                            </button>
+                          )
+                        )}
                       </div>
                     )}
                   </div>
@@ -1729,12 +1786,10 @@ const DecodingProgress = ({ progress }: { progress: number }) => {
 
 function ProvideSection() {
   const [images, setImages] = useState<ImageDocument[]>([]);
-  console.log(images);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(
     null
   );
-  const [isAddMode, setIsAddMode] = useState<number | null>(null); // index로 변경
   const [saleUrl, setSaleUrl] = useState("");
 
   const [isOpen, setIsOpen] = useState(false);
@@ -1746,28 +1801,24 @@ function ProvideSection() {
   } | null>(null);
 
   const [newItemPosition, setNewItemPosition] = useState<Position | null>(null);
+  const [modalOpenIndex, setModalOpenIndex] = useState<number | null>(null);
 
   const handleImageClick = (
     index: number,
     e: React.MouseEvent<HTMLDivElement>
   ) => {
-    if (isAddMode !== index) return;
-
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setNewItemPosition({ left: x.toString(), top: y.toString() });
   };
 
-  const handleAddItem = (itemClass: ItemClass, category: string) => {
-    // TODO: API 호출하여 새 아이템 추가
-    console.log("Adding new item:", {
-      itemClass,
-      category,
-      position: newItemPosition,
-    });
-    setNewItemPosition(null);
+  const handleCloseModal = () => {
+    setModalOpenIndex(null);
+  };
+
+  const handleAddItems = (positions: Position[]) => {
+    // TODO: API 호출하여 새 아이템들 추가
+    console.log("Adding new items:", positions);
   };
 
   // 제공 버튼 클릭 핸들러
@@ -1809,6 +1860,7 @@ function ProvideSection() {
         null
       );
       const images = convertKeysToCamelCase(response.data.images);
+      console.log(images);
       setImages(images);
     } catch (error) {
       console.error("이미지 로딩 실패:", error);
@@ -1888,32 +1940,21 @@ function ProvideSection() {
                     {/* 아이템 추가 버튼 수정 */}
                     <button
                       onClick={() =>
-                        setIsAddMode(isAddMode === index ? null : index)
+                        (
+                          document.getElementById(
+                            `add_item_modal_${index}`
+                          ) as HTMLDialogElement
+                        )?.showModal()
                       }
                       className={`
                     absolute top-4 right-4 z-10
                     inline-flex items-center px-4 py-2 
-                    border border-transparent rounded-md shadow-sm 
-                    text-sm font-medium text-white
-                    transition-all duration-200
-                    ${
-                      isAddMode === index
-                        ? "bg-blue-600 border-blue-400 shadow-blue-500/30"
-                        : "bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
-                    }
-                    group
+                    bg-gray-800 text-white rounded-md
+                    hover:bg-gray-700 transition-colors
                   `}
                     >
                       <svg
-                        className={`
-                      h-4 w-4 mr-2
-                      ${
-                        isAddMode === index
-                          ? "rotate-45"
-                          : "group-hover:scale-110"
-                      }
-                      transition-transform duration-200
-                    `}
+                        className="w-4 h-4 mr-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1921,25 +1962,20 @@ function ProvideSection() {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          strokeWidth="2"
+                          strokeWidth={2}
                           d="M12 4v16m8-8H4"
                         />
                       </svg>
                       아이템 추가
                     </button>
+                    {/* 아이템 추가 모달 */}
+                    <AddItemModal id={index} image={image} />
                     <Image
                       src={image.imgUrl}
                       alt="Fashion item"
                       fill
                       className="object-cover rounded-lg"
                     />
-                    {isAddMode === index && newItemPosition && (
-                      <AddItemModal
-                        position={newItemPosition}
-                        onClose={() => setNewItemPosition(null)}
-                        onAdd={handleAddItem}
-                      />
-                    )}
                     {/* 마커 애니메이션 효과 추가 */}
                     {Object.values(image.items)
                       .flat()
@@ -1977,74 +2013,76 @@ function ProvideSection() {
                         return (
                           <div
                             key={index}
-                            className="group flex items-center gap-4 bg-[#1A1A1A] p-4 rounded-lg border border-white/5 hover:border-white/10 transition-all hover:translate-x-1"
+                            className="group flex items-center gap-4 bg-[#1A1A1A] p-4 hover:bg-[#222222] transition-colors border border-zinc-800"
                           >
-                            {/* 아이템 아이콘 */}
-                            <div className="w-12 h-12 bg-[#252525] rounded-lg flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
-                              <div className="text-2xl grid grid-cols-3 gap-0.5 transform scale-[0.6]">
-                                <div className="w-2 h-2"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                                <div className="w-2 h-2"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                                <div className="w-2 h-2"></div>
-                                <div className="w-2 h-2 bg-current rounded-sm"></div>
-                              </div>
+                            {/* 아이템 이미지 (placeholder) */}
+                            <div className="w-16 h-16 bg-white/[0.5] rounded flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-8 h-8 text-zinc-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
                             </div>
 
+                            {/* 아이템 정보 */}
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm text-gray-400">
-                                {itemDoc.item.itemClass}
-                              </div>
-                              <div className="font-medium truncate">
+                              {/* 카테고리 (소문자로 표시) */}
+                              <div className="text-sm text-zinc-400 uppercase tracking-wide font-medium">
                                 {itemDoc.item.category}
                               </div>
-                              <div className="text-sm text-gray-400 truncate">
-                                {itemDoc.item.name?.value}
+
+                              {/* 브랜드명 (placeholder) */}
+                              <div className="text-lg font-medium text-white mt-1">
+                                {itemDoc.item.name?.value || (
+                                  <div className="h-6 w-32 bg-white/[0.5] rounded animate-pulse"></div>
+                                )}
+                              </div>
+
+                              {/* 아이템명 (placeholder) */}
+                              <div className="text-sm text-zinc-300 mt-0.5">
+                                {itemDoc.item.name?.value || (
+                                  <div className="h-4 w-48 bg-white/[0.5] rounded animate-pulse"></div>
+                                )}
                               </div>
                             </div>
 
+                            {/* 포인트와 제공 버튼 */}
                             <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 bg-[#252525] px-2.5 py-1 rounded-md">
-                                {/* 픽셀 코인 아이콘 */}
-                                <div className="grid grid-cols-4 gap-px transform scale-[0.4]">
-                                  <div className="w-2 h-2"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2"></div>
-
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-
-                                  <div className="w-2 h-2"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2 bg-yellow-400 rounded-sm"></div>
-                                  <div className="w-2 h-2"></div>
-                                </div>
-
-                                {/* 포인트 텍스트 */}
-                                <span className="text-sm font-medium">10</span>
+                              {/* 포인트 표시 */}
+                              <div className="flex items-center gap-2 bg-white/[0.08] px-3 py-2 rounded">
+                                <svg
+                                  className="w-5 h-5 text-yellow-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.7 10.7l2.3-2.3V14a1 1 0 102 0V8.4l2.3 2.3a1 1 0 001.4-1.4l-4-4a1 1 0 00-1.4 0l-4 4a1 1 0 001.4 1.4z" />
+                                </svg>
+                                <span className="text-base font-medium text-white">
+                                  10
+                                </span>
                               </div>
+
+                              {/* 제공 버튼 */}
                               {isRequestedStatus && (
                                 <button
                                   onClick={() =>
                                     handleProvideClick(
-                                      image._id,
+                                      image.docId,
                                       artistId,
                                       index,
                                       itemDoc
                                     )
                                   }
-                                  className="text-blue-400 hover:text-blue-300 font-medium"
+                                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-medium 
+                 text-base transition-colors shadow-lg shadow-blue-500/20"
                                 >
                                   제공
                                 </button>

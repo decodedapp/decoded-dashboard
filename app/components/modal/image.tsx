@@ -1,28 +1,16 @@
 import Image from "next/image";
 import { useState, useRef } from "react";
-import { RequestedItem, ItemClass, ItemCategory } from "@/types/model";
+import { RequestedItem } from "@/types/model";
+import {
+  ItemClass,
+  ItemSubClass,
+  subClassesByClass,
+  categoriesBySubClass,
+  styleOptions,
+} from "@/constants/categories";
 import { networkManager } from "@/network/network";
 
-export const styleOptions = [
-  "Casual",
-  "Formal",
-  "Street",
-  "Sporty",
-  "Vintage",
-  "Minimal",
-  "Bohemian",
-  "Luxury",
-  "Modern",
-  "Classic",
-] as const;
-
 type FashionStyle = (typeof styleOptions)[number];
-
-const categoryByClass: Record<ItemClass, ItemCategory[]> = {
-  Fashion: ["Clothing", "Accessories", "Sneakers"],
-  Furniture: ["Chair", "Table", "Lighting"],
-  Art: ["Painting", "Sculpture", "Photography"],
-};
 
 export const ImagePreviewModal = ({
   isOpen,
@@ -252,7 +240,7 @@ export const ImagePreviewModal = ({
                                             아이템 종류
                                           </label>
                                           <div className="grid grid-cols-2 gap-1 mt-1">
-                                            {Object.keys(categoryByClass).map(
+                                            {Object.keys(subClassesByClass).map(
                                               (itemClass) => (
                                                 <button
                                                   key={itemClass}
@@ -263,10 +251,6 @@ export const ImagePreviewModal = ({
                                                       {
                                                         itemClass:
                                                           itemClass as ItemClass,
-                                                        category:
-                                                          categoryByClass[
-                                                            itemClass as ItemClass
-                                                          ][0],
                                                       }
                                                     )
                                                   }
@@ -289,29 +273,64 @@ export const ImagePreviewModal = ({
                                               카테고리
                                             </label>
                                             <div className="grid grid-cols-2 gap-1 mt-1">
-                                              {categoryByClass[
+                                              {subClassesByClass[
                                                 item.itemClass as ItemClass
-                                              ].map(
-                                                (category: ItemCategory) => (
-                                                  <button
-                                                    key={category}
-                                                    onClick={() =>
-                                                      handleItemUpdate(
-                                                        key,
-                                                        index,
-                                                        { category }
-                                                      )
-                                                    }
-                                                    className={`px-2 py-1 text-xs rounded ${
-                                                      item.category === category
-                                                        ? "bg-black text-white"
-                                                        : "bg-gray-100 hover:bg-gray-200"
-                                                    }`}
-                                                  >
-                                                    {category}
-                                                  </button>
-                                                )
-                                              )}
+                                              ].map((subClass) => (
+                                                <button
+                                                  key={subClass}
+                                                  onClick={() =>
+                                                    handleItemUpdate(
+                                                      key,
+                                                      index,
+                                                      {
+                                                        itemSubClass:
+                                                          subClass as ItemSubClass,
+                                                      }
+                                                    )
+                                                  }
+                                                  className={`px-2 py-1 text-xs rounded ${
+                                                    item.itemSubClass ===
+                                                    subClass
+                                                      ? "bg-black text-white"
+                                                      : "bg-gray-100 hover:bg-gray-200"
+                                                  }`}
+                                                >
+                                                  {subClass}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {item.itemSubClass && (
+                                          <div>
+                                            <label className="text-xs text-gray-500">
+                                              카테고리
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-1 mt-1">
+                                              {categoriesBySubClass[
+                                                item.itemSubClass as ItemSubClass
+                                              ].map((category) => (
+                                                <button
+                                                  key={category}
+                                                  onClick={() =>
+                                                    handleItemUpdate(
+                                                      key,
+                                                      index,
+                                                      {
+                                                        category: category,
+                                                      }
+                                                    )
+                                                  }
+                                                  className={`px-2 py-1 text-xs rounded ${
+                                                    item.category === category
+                                                      ? "bg-black text-white"
+                                                      : "bg-gray-100 hover:bg-gray-200"
+                                                  }`}
+                                                >
+                                                  {category}
+                                                </button>
+                                              ))}
                                             </div>
                                           </div>
                                         )}
@@ -327,11 +346,6 @@ export const ImagePreviewModal = ({
                                       </div>
                                     </div>
                                   )}
-
-                                {/* 호버 시 나타나는 라벨 */}
-                                <div className="absolute left-full ml-2 hidden group-hover:block bg-black/90 text-white text-xs py-1 px-2 rounded whitespace-nowrap shadow-lg">
-                                  {item.itemClass} - {item.category}
-                                </div>
                               </div>
                             </div>
                           </div>
@@ -495,7 +509,8 @@ export const ImagePreviewModal = ({
                                 {index + 1}
                               </span>
                               <span>
-                                {item.itemClass} - {item.category}
+                                {item.itemClass} - {item.itemSubClass} -
+                                {item.category}
                               </span>
                             </div>
                           ))}

@@ -1,3 +1,6 @@
+
+import type { ItemClass, ItemSubClass} from "@/constants/categories";
+
 /**
  * The ImageInfo interface defines the structure for image information.
  * @param title The title of the image.
@@ -346,6 +349,7 @@ interface ImageDetail {
 
 interface RequestedItem {
   itemClass: string;
+  itemSubClass: string;
   category: string;
   position: Position;
 }
@@ -363,23 +367,12 @@ enum SnsType {
   Youtube = "youtube",
 }
 
-type ItemClass = "Fashion" | "Furniture" | "Art";
-type ItemCategory =
-  | "Clothing"
-  | "Accessories"
-  | "Sneakers"
-  | "Chair"
-  | "Table"
-  | "Lighting"
-  | "Painting"
-  | "Sculpture"
-  | "Photography";
-
 interface Point {
   x: number;
   y: number;
   itemClass?: ItemClass;
-  category?: ItemCategory;
+  itemSubClass?: ItemSubClass;
+  category?: string;
 }
 
 interface SaleInfo {
@@ -405,6 +398,7 @@ interface ItemDocument {
   saleInfo: ItemDetail<SaleInfo[]>;
   imageUrl: ItemDetail<string>;
   itemClass: string;
+  itemSubClass: string;
   category: string;
   subCategory: ItemDetail<string>;
   productType: ItemDetail<string>;
@@ -425,7 +419,7 @@ interface Item {
 }
 
 interface ImageDocument {
-  _id: string;
+  docId: string;
   decodedNum: Number;
   description: string;
   imgUrl: string;
@@ -435,4 +429,11 @@ interface ImageDocument {
   style: string[];
   title: string;
   uploadBy: string;
+}
+
+interface ArtistDocument {
+  id: string;
+  name: Record<string, string>;
+  category: string;
+  profileImageUrl: string;
 }
