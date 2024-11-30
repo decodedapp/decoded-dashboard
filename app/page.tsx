@@ -5,6 +5,7 @@ import AdminLogin from "./components/login/login";
 import { networkManager } from "@/network/network";
 import { ArtistModal } from "./components/modal/artist";
 import { ImagePreviewModal } from "./components/modal/image";
+import { BrandModal } from "./components/modal/brand";
 import { AddItemModal } from "./components/modal/add";
 import { ProvidePanel } from "./components/modal/provide";
 import {
@@ -15,6 +16,7 @@ import {
   ImageDocument,
   Item,
   Position,
+  ProvideData,
 } from "@/types/model";
 import {
   ItemClass,
@@ -24,17 +26,18 @@ import {
 } from "@/constants/categories";
 import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
 
-type TabType = "requests" | "images" | "artists" | "brands";
+type TabType = "requests" | "images" | "artists" | "brands" | "finalize";
 
-function AdminDashboard() {
+const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("requests");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const tabs = [
-    { id: "requests", name: "요청/제공 관리" },
+    { id: "requests", name: "디코디드 프로세스" },
     { id: "images", name: "이미지 요청" },
     { id: "artists", name: "아티스트 요청" },
     { id: "brands", name: "브랜드 요청" },
+    { id: "finalize", name: "확정 관리" },
   ] as const;
 
   const handleLogin = () => {
@@ -64,9 +67,9 @@ function AdminDashboard() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full space-y-8 p-6 bg-white rounded-lg shadow-lg">
-          <div className="text-center">
+      <div className="h-[50vh]">
+        <div className="max-w-md w-full space-y-8 p-6 bg-white rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <div className="text-center mb-4">
             <h2 className="text-3xl font-bold text-gray-900">관리자 로그인</h2>
             <p className="mt-2 text-sm text-gray-600">
               계속하려면 관리자 계정으로 로그인해주세요
@@ -84,7 +87,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="[h-50vh] bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto">
@@ -129,7 +132,7 @@ function AdminDashboard() {
       </div>
     </div>
   );
-}
+};
 
 const RequestProvideSection = () => {
   const [selectedTab, setSelectedTab] = useState("request");
@@ -137,7 +140,7 @@ const RequestProvideSection = () => {
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       {/* Tab Navigation */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="grid grid-cols-2">
+        <div className="grid grid-cols-3">
           <button
             className={`
           py-4 text-center text-sm font-medium transition-all duration-200
@@ -196,6 +199,35 @@ const RequestProvideSection = () => {
               <span>Provide</span>
             </div>
           </button>
+          <button
+            className={`
+          py-4 text-center text-sm font-medium transition-all duration-200
+          ${
+            selectedTab === "confirm"
+              ? "bg-black text-white"
+              : "text-gray-700 hover:bg-gray-50"
+          }
+          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
+        `}
+            onClick={() => setSelectedTab("confirm")}
+          >
+            <div className="flex items-center justify-center space-x-2">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>Confirm</span>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -216,6 +248,14 @@ const RequestProvideSection = () => {
     `}
         >
           <ProvideSection />
+        </div>
+        <div
+          className={`
+      bg-white rounded-lg shadow
+      ${selectedTab === "confirm" ? "block" : "hidden"}
+    `}
+        >
+          <ConfirmSection />
         </div>
       </div>
     </div>
@@ -241,7 +281,7 @@ const ImageRequestSection = () => {
           ? null
           : [request.doc.style],
     };
-    const isNew: boolean = request.isNew;
+    const isNew: boolean = request.metadata.isNew;
     if (isNew) {
       const uploadImage = { imageBase: requestWithArrayStyle };
       await networkManager
@@ -726,6 +766,48 @@ const ArtistRequestSection = () => {
 };
 
 const BrandRequestSection = () => {
+  const [brandRequests, setBrandRequests] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDataAdded, setIsDataAdded] = useState(false);
+
+  const fetchBrandRequests = async () => {
+    setIsLoading(true);
+    try {
+      const res = await networkManager.request(
+        "requests?doc_type=brand",
+        "GET",
+        null
+      );
+      setBrandRequests(res?.data.requests || []);
+    } catch (error) {
+      console.error("요청 목록 조회 실패:", error);
+      alert("요청 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBrandRequests();
+  }, [isDataAdded]);
+
+  const handleDelete = async (requestId: string) => {
+    if (window.confirm("정말 삭제하시겠습니까?")) {
+      try {
+        await networkManager.request(
+          `delete/request?id=${requestId}`,
+          "DELETE",
+          null
+        );
+        alert("삭제되었습니다.");
+        fetchBrandRequests();
+      } catch (error) {
+        console.error("삭제 실패:", error);
+        alert("삭제에 실패했습니다.");
+      }
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <h2 className="text-lg font-semibold mb-4">브랜드 요청 목록</h2>
@@ -739,10 +821,99 @@ const BrandRequestSection = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 요청일
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                상태
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                작업
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* 브랜드 요청 목록 데이터 매핑 */}
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                  </div>
+                </td>
+              </tr>
+            ) : brandRequests.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                  요청된 브랜드가 없습니다.
+                </td>
+              </tr>
+            ) : (
+              brandRequests.map((request, index) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {request.doc.name.ko || "이름 없음"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(request.requested_at).toLocaleDateString(
+                      "ko-KR",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${
+                          request.status === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : request.status === "rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                    >
+                      {request.status === "approved"
+                        ? "승인됨"
+                        : request.status === "rejected"
+                        ? "거절됨"
+                        : "대기중"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          const modal = document.getElementById(
+                            `brand_modal_${index}`
+                          ) as HTMLDialogElement;
+                          if (modal) modal.showModal();
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDelete(request._id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <BrandModal
+                      id={index}
+                      requestId={request._id}
+                      onClose={() => {
+                        (
+                          document.getElementById(
+                            `brand_modal_${index}`
+                          ) as HTMLDialogElement
+                        )?.close();
+                        fetchBrandRequests();
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -750,7 +921,7 @@ const BrandRequestSection = () => {
   );
 };
 
-function RequestSection() {
+const RequestSection = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
   // State of navigation
@@ -765,7 +936,6 @@ function RequestSection() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   // State of step3
   const [points, setPoints] = useState<Point[]>([]);
-  console.log(points);
 
   useEffect(() => {
     switch (currentStep) {
@@ -1622,7 +1792,7 @@ function RequestSection() {
 
                     {/* Class Selection */}
                     <div className="flex gap-2">
-                      {(["Fashion", "Furniture", "Art"] as ItemClass[]).map(
+                      {(["fashion", "furniture", "art"] as ItemClass[]).map(
                         (itemClass) => (
                           <button
                             key={itemClass}
@@ -1744,7 +1914,7 @@ function RequestSection() {
       </div>
     </div>
   );
-}
+};
 
 const DecodingProgress = ({ progress }: { progress: number }) => {
   const totalBlocks = 20;
@@ -1784,13 +1954,9 @@ const DecodingProgress = ({ progress }: { progress: number }) => {
   );
 };
 
-function ProvideSection() {
+const ProvideSection = () => {
   const [images, setImages] = useState<ImageDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState<ImageDocument | null>(
-    null
-  );
-  const [saleUrl, setSaleUrl] = useState("");
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
@@ -1800,28 +1966,6 @@ function ProvideSection() {
     item: Item;
   } | null>(null);
 
-  const [newItemPosition, setNewItemPosition] = useState<Position | null>(null);
-  const [modalOpenIndex, setModalOpenIndex] = useState<number | null>(null);
-
-  const handleImageClick = (
-    index: number,
-    e: React.MouseEvent<HTMLDivElement>
-  ) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-  };
-
-  const handleCloseModal = () => {
-    setModalOpenIndex(null);
-  };
-
-  const handleAddItems = (positions: Position[]) => {
-    // TODO: API 호출하여 새 아이템들 추가
-    console.log("Adding new items:", positions);
-  };
-
-  // 제공 버튼 클릭 핸들러
   const handleProvideClick = (
     imageId: string,
     artistId: string,
@@ -1833,18 +1977,41 @@ function ProvideSection() {
   };
 
   const calculateDecodingProgress = (items: Record<string, Item[]>) => {
-    // 모든 아이템을 하나의 배열로 합치기
     const allItems = Object.values(items).flat();
-    console.log(allItems);
     const totalItems = allItems.length;
 
     if (totalItems === 0) return 0;
 
-    // isDecoded가 true인 아이템 개수 세기
     const decodedItems = allItems.filter((item) => item.isDecoded).length;
 
-    // 퍼센트 계산 (소수점 반올림)
     return Math.round((decodedItems / totalItems) * 100);
+  };
+
+  const handleProvideSubmit = async (data: ProvideData) => {
+    const imageDocId = selectedItem?.imageId;
+    const providerId = sessionStorage.getItem("USER_DOC_ID");
+    if (!providerId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+    if (!imageDocId) {
+      alert("Something went wrong");
+      return;
+    }
+    await networkManager
+      .request(
+        `provide/item?image=${imageDocId}&provider=${providerId}`,
+        "POST",
+        data
+      )
+      .then((res) => {
+        alert("제공 요청이 완료되었습니다.");
+        setIsOpen(false);
+        setSelectedItem(null);
+      })
+      .catch((err) => {
+        alert("제공 요청에 실패하였습니다.");
+      });
   };
 
   useEffect(() => {
@@ -1869,25 +2036,6 @@ function ProvideSection() {
     }
   };
 
-  const handleProvideInfo = async () => {
-    if (!selectedItem || !saleUrl) return;
-
-    try {
-      await networkManager.request(
-        `provide/item?image_id=${selectedItem.imageId}&artist_id=${selectedItem.artistId}&item_index=${selectedItem.itemIndex}`,
-        "POST",
-        { sale_url: saleUrl }
-      );
-      alert("정보 제공이 완료되었습니다.");
-      setSaleUrl("");
-      setSelectedItem(null);
-      fetchImages(); // 목록 새로고침
-    } catch (error) {
-      console.error("정보 제공 실패:", error);
-      alert("정보 제공에 실패했습니다.");
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1898,26 +2046,6 @@ function ProvideSection() {
 
   return (
     <div className="bg-[#111111] text-white">
-      {/* 상단 네비게이션 바 */}
-      <nav className="sticky top-0 z-50 bg-black/50 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-[1400px] mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">FASHION</h1>
-            <div className="flex gap-6">
-              <button className="text-white hover:text-blue-400 transition-colors">
-                ALL
-              </button>
-              <button className="text-gray-400 hover:text-blue-400 transition-colors">
-                FASHION
-              </button>
-              <button className="text-gray-400 hover:text-blue-400 transition-colors">
-                INTERIOR
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* 컨텐츠 컨테이너 */}
       <div className="relative w-full overflow-hidden">
         {/* 메인 페이지 */}
@@ -1932,7 +2060,6 @@ function ProvideSection() {
               <div
                 key={index}
                 className="flex flex-col lg:flex-row gap-8 mb-12"
-                onClick={(e) => handleImageClick(index, e)}
               >
                 {/* 왼쪽: 이미지 섹션 */}
                 <div className="lg:w-[600px]">
@@ -2105,7 +2232,7 @@ function ProvideSection() {
         </div>
         {/* 제공 페이지 */}
         <div
-          className={`absolute top-0 left-0 w-full min-h-screen transform transition-transform duration-300 bg-[#111111] ${
+          className={`absolute overflow-y-auto top-0 left-0 w-full h-full transform transition-transform duration-300 bg-[#111111] ${
             isOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
@@ -2132,21 +2259,176 @@ function ProvideSection() {
                 돌아가기
               </button>
 
-              {/* 제공 폼 컨텐츠 */}
-              <div className="h-full overflow-y-auto">
-                <ProvidePanel
-                  isOpen={isOpen}
-                  onClose={() => setIsOpen(false)}
-                  item={selectedItem?.item.item!}
-                  // onSubmit={handleProvideSubmit}
-                />
-              </div>
+              <ProvidePanel
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                item={selectedItem?.item.item!}
+                onSubmit={handleProvideSubmit}
+              />
             </div>
           )}
         </div>
       </div>
     </div>
   );
-}
+};
+
+const ConfirmSection = () => {
+  const [requests, setRequests] = useState<
+    Record<string, Record<string, Record<string, string>>>
+  >({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const userId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userId) {
+        throw new Error("사용자 ID를 찾을 수 없습니다.");
+      }
+
+      const response = await networkManager.request(
+        `user/requests?id=${userId}`,
+        "GET",
+        null
+      );
+      console.log(response.data);
+      setRequests(response.data.item_details);
+    } catch (error) {
+      console.error("요청 목록 조회 실패:", error);
+      alert("요청 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirm = async (
+    itemDocId: string,
+    providerId: string,
+    field: string
+  ) => {
+    try {
+      // TODO: Confirm API 호출
+      alert("선택하신 값이 확정되었습니다.");
+      fetchRequests(); // 목록 새로고침
+    } catch (error) {
+      console.error("확정 실패:", error);
+      alert("값 확정에 실패했습니다.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {Object.entries(requests).length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            요청한 아이템이 없습니다.
+          </div>
+        ) : (
+          Object.entries(requests).map(([itemDocId, fields]) => (
+            <div
+              key={itemDocId}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
+              {/* 아이템 헤더 */}
+              <div className="bg-gray-50 px-6 py-4 border-b">
+                <h3 className="text-lg font-medium text-gray-900">
+                  아이템 ID: {itemDocId}
+                </h3>
+              </div>
+
+              {/* 필드별 제공값 목록 */}
+              <div className="divide-y divide-gray-200">
+                {Object.entries(fields).map(([field, providers]) => (
+                  <div key={field} className="px-6 py-4">
+                    <h4 className="text-sm font-medium text-gray-500 uppercase mb-3">
+                      {field}
+                    </h4>
+
+                    <div className="space-y-3">
+                      {Object.entries(providers).map(([providerId, value]) => (
+                        <div
+                          key={providerId}
+                          className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
+                        >
+                          <div>
+                            {field === "sale_info" ? (
+                              <div className="space-y-1">
+                                {Object.entries(
+                                  typeof value === "object" ? value : {}
+                                ).map(([key, val]) => (
+                                  <div key={key} className="text-sm">
+                                    <span className="font-medium">{key}: </span>
+                                    <span className="text-gray-600">
+                                      {typeof val === "boolean"
+                                        ? val.toString()
+                                        : String(val)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              // 일반 필드인 경우 값을 직접 표시
+                              <div className="text-sm text-gray-900">
+                                {typeof value === "string"
+                                  ? value
+                                  : JSON.stringify(value)}
+                              </div>
+                            )}
+                            <div className="text-xs text-gray-500 mt-2">
+                              제공자: {providerId}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              handleConfirm(itemDocId, providerId, field)
+                            }
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <svg
+                              className="h-4 w-4 mr-1.5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            확정
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+const FinalizeSection = () => {
+  return <div>FinalizeSection</div>;
+};
 
 export default AdminDashboard;

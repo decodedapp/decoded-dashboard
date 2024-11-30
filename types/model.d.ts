@@ -1,5 +1,5 @@
 
-import type { ItemClass, ItemSubClass} from "@/constants/categories";
+import type { ItemClass, ItemSubClass, MainCategory, SubCategoryMap, InstanceMap } from "@/constants/categories";
 
 /**
  * The ImageInfo interface defines the structure for image information.
@@ -234,7 +234,7 @@ export interface BrandInfo {
   cd?: Record<string, string>[];
   websiteUrl?: string;
   logoImageUrl?: string;
-  sns?: Record<string, string>;
+  snsInfo?: Record<string, string>;
   tags?: Record<string, string[]>;
 }
 
@@ -392,6 +392,7 @@ interface ItemDetail<T> {
 }
 
 interface ItemDocument {
+  Id: string;
   name: ItemDetail<string>;
   brand: ItemDetail<string>;
   designedBy: ItemDetail<string>;
@@ -436,4 +437,28 @@ interface ArtistDocument {
   name: Record<string, string>;
   category: string;
   profileImageUrl: string;
+}
+
+interface ItemCategory<M extends MainCategory = MainCategory> {
+  main: M;
+  sub: SubCategoryMap<M>;
+  instance: InstanceMap<M, SubCategoryMap<M>>;
+}
+
+interface ProvideData {
+  docId: string;
+  name: string;
+  brand: string;
+  saleUrl: string;
+  subCategory: string;
+  productType: string;
+  material?: string;
+  designedBy?: string;
+}
+
+interface BrandData {
+  en: string;
+  ko: string;
+  docId: string;
+  logoImageUrl: string;
 }

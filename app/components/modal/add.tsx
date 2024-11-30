@@ -25,8 +25,9 @@ interface ExtendedPoint extends Point {
 
 export function AddItemModal({ id, image }: AddItemModalProps) {
   const [newMarkers, setNewMarkers] = useState<ExtendedPoint[]>([]);
-  console.log("newMarkers", newMarkers);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQueries, setSearchQueries] = useState<Record<number, string>>(
+    {}
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<{
     itemClass: ItemClass;
@@ -60,10 +61,20 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
     fetchCelebs();
   }, []);
 
+  const handleSearchChange = (index: number, query: string) => {
+    setSearchQueries((prev) => ({
+      ...prev,
+      [index]: query,
+    }));
+  };
+
   // 필터링된 셀럽 목록
-  const filteredCelebs = celebs.filter((celeb) =>
-    celeb.name.ko.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const getFilteredCelebs = (index: number) => {
+    const query = searchQueries[index] || "";
+    return celebs.filter((celeb) =>
+      celeb.name.ko.toLowerCase().includes(query.toLowerCase())
+    );
+  };
 
   // 새로운 셀럽 요청 핸들러
   const handleCelebRequest = async (celeb: {
@@ -235,9 +246,9 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
             handleArtistSelect={handleArtistSelect}
             setNewMarkers={setNewMarkers}
             setNewCeleb={setNewCeleb}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filteredCelebs={filteredCelebs}
+            searchQueries={searchQueries}
+            handleSearchChange={handleSearchChange}
+            getFilteredCelebs={getFilteredCelebs}
             showAddForm={showAddForm}
             setShowAddForm={setShowAddForm}
           />
@@ -385,9 +396,9 @@ const SelectedMarkersArea = ({
   handleArtistSelect,
   setNewMarkers,
   setNewCeleb,
-  searchQuery,
-  setSearchQuery,
-  filteredCelebs,
+  searchQueries,
+  handleSearchChange,
+  getFilteredCelebs,
   showAddForm,
   setShowAddForm,
 }: {
@@ -409,9 +420,9 @@ const SelectedMarkersArea = ({
   setNewCeleb: React.Dispatch<
     React.SetStateAction<{ name: string; category: string; requestBy: string }>
   >;
-  searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
-  filteredCelebs: ArtistDocument[];
+  searchQueries: Record<number, string>;
+  handleSearchChange: (index: number, query: string) => void;
+  getFilteredCelebs: (index: number) => ArtistDocument[];
   showAddForm: boolean;
   setShowAddForm: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
@@ -584,15 +595,15 @@ const SelectedMarkersArea = ({
                 type="text"
                 placeholder="아티스트 검색..."
                 className="w-full px-3 py-2 border rounded-md text-black"
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(idx, e.target.value)}
               />
             </div>
 
             {/* 아티스트 목록 */}
-            {searchQuery && (
+            {searchQueries[idx] && (
               <div className="max-h-80 overflow-y-auto rounded-md border">
-                {filteredCelebs.length > 0 ? (
-                  filteredCelebs.map((celeb) => (
+                {getFilteredCelebs(idx).length > 0 ? (
+                  getFilteredCelebs(idx).map((celeb) => (
                     <div
                       key={celeb.id}
                       onClick={() => handleArtistSelect(idx, celeb.id)}

@@ -59,17 +59,25 @@ export const snakeToCamel = (str: string): string => {
 };
 
 export const convertKeysToSnakeCase = (obj: any): any => {
-  if (Array.isArray(obj)) {
-      return obj.map(v => convertKeysToSnakeCase(v));
-  } else if (obj !== null && obj.constructor === Object) {
-      return Object.keys(obj).reduce((result, key) => {
-          const newKey = camelToSnake(key);
-          result[newKey] = convertKeysToSnakeCase(obj[key]);
-          return result;
-      }, {} as any);
-  }
-  return obj;
-};
+    if (!obj || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {  // constructor 대신 Array.isArray 사용
+        return obj.map(convertKeysToSnakeCase);
+    }
+
+    if (obj && typeof obj === 'object') {  // constructor 체크 대신 타입 체크
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [
+                camelToSnake(key),
+                convertKeysToSnakeCase(value)
+            ])
+        );
+    }
+
+    return obj;
+}
 
 export const convertKeysToCamelCase = (obj: any): any => {
   if (Array.isArray(obj)) {

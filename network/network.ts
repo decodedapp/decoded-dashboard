@@ -68,6 +68,7 @@ export class NetworkManager {
     public async request(path: string, method: string, data: any) {
         try{ 
             const convertedData = convertKeysToSnakeCase(data);
+            console.log(convertedData);
             const url = `${this.config.db}/api/${path}`;
             const res = await axios.request({
                 url,
@@ -79,6 +80,7 @@ export class NetworkManager {
             });
             return res.data;
         } catch(e) {
+            console.error("Request error details:", e);
             throw new Error("Error on request => " + e);
         }
     }
