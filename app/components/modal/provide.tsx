@@ -25,14 +25,8 @@ export const ProvidePanel = ({
   onSubmit,
 }: ProvideModalProps) => {
   console.log("Item", item);
-  const [provideData, setProvideData] = useState<ProvideData>({
-    docId: item.Id,
-    name: "",
-    brand: "",
-    saleUrl: "",
-    subCategory: "",
-    productType: "",
-  });
+  const [provideData, setProvideData] = useState<ProvideData | null>(null);
+  console.log("ProvideData", provideData);
   const category = item.category as MainCategory;
   const [selectedSub, setSelectedSub] = useState<
     keyof (typeof categories)[typeof category] | undefined
@@ -91,17 +85,29 @@ export const ProvidePanel = ({
   };
 
   const handleSubmit = () => {
+    if (!provideData) {
+      alert("정보를 입력해주세요.");
+      return;
+    }
     onSubmit(provideData);
     onClose();
   };
 
   // 모달 닫기 시 상태 초기화
   const handleClose = () => {
+    setProvideData(null);
     setSelectedSub(undefined);
     setSelectedInstance(undefined);
     setBrandSearch("");
     onClose();
   };
+
+  useEffect(() => {
+    setProvideData((prev) => ({
+      ...prev,
+      docId: item.Id,
+    }));
+  }, [item.Id]);
 
   useEffect(() => {
     const fetchBrands = async () => {
@@ -137,6 +143,26 @@ export const ProvidePanel = ({
                     ${isOpen ? "translate-x-0" : "translate-x-full"}`}
     >
       <div className="max-w-[1400px] mx-auto p-6 h-auto flex flex-col">
+        {/* 뒤로가기 버튼 */}
+        <button
+          onClick={handleClose}
+          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          돌아가기
+        </button>
         <div className="space-y-4">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             아이템 정보 제공

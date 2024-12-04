@@ -17,6 +17,8 @@ import {
   Item,
   Position,
   ProvideData,
+  ItemRequest,
+  ProvidedItemDetail,
 } from "@/types/model";
 import {
   ItemClass,
@@ -24,6 +26,7 @@ import {
   subClassesByClass,
   categoriesBySubClass,
 } from "@/constants/categories";
+import { ProvideStatus } from "@/constants/schema";
 import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
 
 type TabType = "requests" | "images" | "artists" | "brands" | "finalize";
@@ -203,13 +206,13 @@ const RequestProvideSection = () => {
             className={`
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
-            selectedTab === "confirm"
+            selectedTab === "myPage"
               ? "bg-black text-white"
               : "text-gray-700 hover:bg-gray-50"
           }
           focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
         `}
-            onClick={() => setSelectedTab("confirm")}
+            onClick={() => setSelectedTab("myPage")}
           >
             <div className="flex items-center justify-center space-x-2">
               <svg
@@ -222,10 +225,10 @@ const RequestProvideSection = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
-              <span>Confirm</span>
+              <span>My Page</span>
             </div>
           </button>
         </div>
@@ -252,10 +255,10 @@ const RequestProvideSection = () => {
         <div
           className={`
       bg-white rounded-lg shadow
-      ${selectedTab === "confirm" ? "block" : "hidden"}
+      ${selectedTab === "myPage" ? "block" : "hidden"}
     `}
         >
-          <ConfirmSection />
+          <MyPageSection />
         </div>
       </div>
     </div>
@@ -1988,6 +1991,7 @@ const ProvideSection = () => {
   };
 
   const handleProvideSubmit = async (data: ProvideData) => {
+    console.log("ProvideData", data);
     const imageDocId = selectedItem?.imageId;
     const providerId = sessionStorage.getItem("USER_DOC_ID");
     if (!providerId) {
@@ -2238,27 +2242,6 @@ const ProvideSection = () => {
         >
           {selectedItem && (
             <div className="max-w-[1400px] mx-auto p-6">
-              {/* 뒤로가기 버튼 */}
-              <button
-                onClick={() => setIsOpen(false)}
-                className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-                돌아가기
-              </button>
-
               <ProvidePanel
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
@@ -2273,15 +2256,98 @@ const ProvideSection = () => {
   );
 };
 
-const ConfirmSection = () => {
-  const [requests, setRequests] = useState<
-    Record<string, Record<string, Record<string, string>>>
-  >({});
+const MyPageSection = () => {
+  const [requests, setRequests] = useState<ItemRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [openItems, setOpenItems] = useState<boolean[][]>([]);
+  const [currentPages, setCurrentPages] = useState<number[]>([]);
+  const ITEMS_PER_PAGE = 1;
 
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  // 각 request의 페이지 초기화
+  useEffect(() => {
+    setCurrentPages(requests.map(() => 1));
+  }, [requests]);
+
+  useEffect(() => {
+    if (requests.length > 0) {
+      const initialOpenState = requests.map((request) =>
+        new Array(request.items?.length || 0).fill(true)
+      );
+      setOpenItems(initialOpenState);
+    }
+  }, [requests]);
+
+  const getFieldDisplayName = (fieldName: string): string => {
+    const fieldNameMap: Record<string, string> = {
+      name: "상품명",
+      brand: "브랜드",
+      subCategory: "카테고리",
+      productType: "상품 종류",
+      saleInfo: "구매 정보",
+      material: "소재",
+      designedBy: "디자이너",
+    };
+    return fieldNameMap[fieldName] || fieldName;
+  };
+
+  const getStatusColor = (status: ProvideStatus) => {
+    switch (status) {
+      case ProvideStatus.PROVIDED:
+        return "bg-blue-100 text-blue-800";
+      case ProvideStatus.FINALIZED:
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusText = (status: ProvideStatus) => {
+    switch (status) {
+      case ProvideStatus.PROVIDED:
+        return "제공됨";
+      case ProvideStatus.FINALIZED:
+        return "확정됨";
+      default:
+        return "대기중";
+    }
+  };
+
+  const toggleItem = (requestIndex: number, itemIndex: number) => {
+    setOpenItems((prev) => {
+      const newState = [...prev];
+      newState[requestIndex] = [...(newState[requestIndex] || [])];
+      newState[requestIndex][itemIndex] = !newState[requestIndex][itemIndex];
+      return newState;
+    });
+  };
+
+  const handlePageChange = (requestIndex: number, newPage: number) => {
+    setCurrentPages((prev) => {
+      const newPages = [...prev];
+      newPages[requestIndex] = newPage;
+      return newPages;
+    });
+  };
+
+  // 페이지네이션된 아이템 가져오기
+  const getPaginatedItems = (
+    items: ProvidedItemDetail[] | null,
+    requestIndex: number
+  ) => {
+    if (!items) return [];
+    const startIndex = (currentPages[requestIndex] - 1) * ITEMS_PER_PAGE;
+    return items.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
+  // 전체 페이지 수 계산
+  const getTotalPages = (items: ProvidedItemDetail[] | null) => {
+    if (!items) return 1;
+    return Math.ceil(items.length / ITEMS_PER_PAGE);
+  };
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -2296,28 +2362,17 @@ const ConfirmSection = () => {
         "GET",
         null
       );
-      console.log(response.data);
-      setRequests(response.data.item_details);
+      console.log("response", response.data);
+      const convertedData = response.data.map((item: any) =>
+        convertKeysToCamelCase(item)
+      );
+      console.log("convertedData", convertedData);
+      setRequests(convertedData);
     } catch (error) {
       console.error("요청 목록 조회 실패:", error);
       alert("요청 목록을 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleConfirm = async (
-    itemDocId: string,
-    providerId: string,
-    field: string
-  ) => {
-    try {
-      // TODO: Confirm API 호출
-      alert("선택하신 값이 확정되었습니다.");
-      fetchRequests(); // 목록 새로고침
-    } catch (error) {
-      console.error("확정 실패:", error);
-      alert("값 확정에 실패했습니다.");
     }
   };
 
@@ -2330,99 +2385,325 @@ const ConfirmSection = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {Object.entries(requests).length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            요청한 아이템이 없습니다.
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {requests.length === 0 ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
+          <div className="flex flex-col items-center justify-center space-y-3 px-4">
+            <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+              아직 요청한 아이템이 없어요
+            </h3>
+            <p className="text-gray-500 max-w-sm text-center leading-relaxed">
+              관심있는 아이템의 정보를 요청해보세요.
+              <br />
+              <span className="text-gray-400">
+                다른 사용자들이 정보를 제공해줄 거예요!
+              </span>
+            </p>
           </div>
-        ) : (
-          Object.entries(requests).map(([itemDocId, fields]) => (
-            <div
-              key={itemDocId}
-              className="bg-white rounded-lg shadow-md overflow-hidden"
-            >
-              {/* 아이템 헤더 */}
-              <div className="bg-gray-50 px-6 py-4 border-b">
-                <h3 className="text-lg font-medium text-gray-900">
-                  아이템 ID: {itemDocId}
-                </h3>
-              </div>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {requests.map((request, requestIndex) => {
+            const totalPages = getTotalPages(request.items);
+            const currentPage = currentPages[requestIndex] || 1;
+            const paginatedItems = getPaginatedItems(
+              request.items,
+              requestIndex
+            );
 
-              {/* 필드별 제공값 목록 */}
-              <div className="divide-y divide-gray-200">
-                {Object.entries(fields).map(([field, providers]) => (
-                  <div key={field} className="px-6 py-4">
-                    <h4 className="text-sm font-medium text-gray-500 uppercase mb-3">
-                      {field}
-                    </h4>
+            return (
+              <div
+                key={request.imageDocId}
+                className="bg-blue-50 rounded-lg overflow-hidden"
+              >
+                <div className="w-full max-w-6xl mx-auto p-6">
+                  <div className="flex flex-col md:flex-row gap-8">
+                    {/* 이미지 섹션 */}
+                    <div className="w-full md:w-1/2">
+                      {request.imageUrl && (
+                        <div className="relative rounded-lg overflow-hidden shadow-sm">
+                          <img
+                            src={request.imageUrl}
+                            alt="Requested item"
+                            className="w-full h-auto"
+                          />
+                          {request.items?.map((item, index) => {
+                            const hasProvidedInfo = item.provideItemInfo
+                              ? Object.values(item.provideItemInfo).some(
+                                  (info) =>
+                                    info?.provideStatus ===
+                                    ProvideStatus.PROVIDED
+                                )
+                              : false;
+                            const isFinalized = item.provideItemInfo
+                              ? Object.values(item.provideItemInfo).every(
+                                  (info) =>
+                                    info?.provideStatus ===
+                                    ProvideStatus.FINALIZED
+                                )
+                              : false;
 
-                    <div className="space-y-3">
-                      {Object.entries(providers).map(([providerId, value]) => (
-                        <div
-                          key={providerId}
-                          className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
-                        >
-                          <div>
-                            {field === "sale_info" ? (
-                              <div className="space-y-1">
-                                {Object.entries(
-                                  typeof value === "object" ? value : {}
-                                ).map(([key, val]) => (
-                                  <div key={key} className="text-sm">
-                                    <span className="font-medium">{key}: </span>
-                                    <span className="text-gray-600">
-                                      {typeof val === "boolean"
-                                        ? val.toString()
-                                        : String(val)}
-                                    </span>
-                                  </div>
-                                ))}
+                            return (
+                              <div
+                                key={item.itemDocId}
+                                className={`absolute border-2 rounded-md ${
+                                  isFinalized
+                                    ? "border-green-500 bg-green-500/10"
+                                    : hasProvidedInfo
+                                    ? "border-blue-500 bg-blue-500/10"
+                                    : "border-gray-500 bg-gray-500/10"
+                                }`}
+                                style={{
+                                  left: `${item.position.left}%`,
+                                  top: `${item.position.top}%`,
+                                }}
+                              >
+                                <span
+                                  className={`absolute -top-6 left-0 text-xs font-medium px-2 py-1 rounded-full ${
+                                    isFinalized
+                                      ? "bg-green-100 text-green-800"
+                                      : hasProvidedInfo
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-gray-100 text-gray-800"
+                                  }`}
+                                >
+                                  {index + 1}
+                                </span>
                               </div>
-                            ) : (
-                              // 일반 필드인 경우 값을 직접 표시
-                              <div className="text-sm text-gray-900">
-                                {typeof value === "string"
-                                  ? value
-                                  : JSON.stringify(value)}
-                              </div>
-                            )}
-                            <div className="text-xs text-gray-500 mt-2">
-                              제공자: {providerId}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() =>
-                              handleConfirm(itemDocId, providerId, field)
-                            }
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            <svg
-                              className="h-4 w-4 mr-1.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                            확정
-                          </button>
+                            );
+                          })}
                         </div>
-                      ))}
+                      )}
+                    </div>
+
+                    {/* 텍스트 섹션 */}
+                    <div className="w-full md:w-1/2 flex flex-col space-y-4">
+                      <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                        아이템의 정보를 확인해보세요
+                      </h3>
+
+                      {/* 페이지네이션 컨트롤 */}
+                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded-lg shadow-sm">
+                        <button
+                          onClick={() =>
+                            handlePageChange(requestIndex, currentPage - 1)
+                          }
+                          disabled={currentPage === 1}
+                          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 19l-7-7 7-7"
+                            />
+                          </svg>
+                        </button>
+                        <span className="text-sm font-medium">
+                          {currentPage} / {totalPages}
+                        </span>
+                        <button
+                          onClick={() =>
+                            handlePageChange(requestIndex, currentPage + 1)
+                          }
+                          disabled={currentPage === totalPages}
+                          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* 아이템 리스트 */}
+                      <div className="space-y-2">
+                        {paginatedItems.map((item, index) => {
+                          const absoluteIndex =
+                            (currentPage - 1) * ITEMS_PER_PAGE + index;
+                          const hasProvidedInfo = item.provideItemInfo
+                            ? Object.values(item.provideItemInfo).some(
+                                (info) =>
+                                  info?.provideStatus === ProvideStatus.PROVIDED
+                              )
+                            : false;
+                          const isFinalized = item.provideItemInfo
+                            ? Object.values(item.provideItemInfo).every(
+                                (info) =>
+                                  info?.provideStatus ===
+                                  ProvideStatus.FINALIZED
+                              )
+                            : false;
+
+                          return (
+                            <div
+                              key={item.itemDocId}
+                              className="border rounded-lg overflow-hidden bg-white shadow-sm"
+                            >
+                              <button
+                                onClick={() =>
+                                  toggleItem(requestIndex, absoluteIndex)
+                                }
+                                className={`w-full p-3 flex items-center justify-between text-left transition-colors ${
+                                  isFinalized
+                                    ? "bg-green-50 hover:bg-green-100"
+                                    : hasProvidedInfo
+                                    ? "bg-blue-50 hover:bg-blue-100"
+                                    : "bg-gray-50 hover:bg-gray-100"
+                                }`}
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <span className="font-medium">
+                                    아이템 {absoluteIndex + 1}
+                                  </span>
+                                  <span
+                                    className={`text-xs px-2 py-1 rounded-full ${
+                                      isFinalized
+                                        ? "bg-green-100 text-green-800"
+                                        : hasProvidedInfo
+                                        ? "bg-blue-100 text-blue-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                                  >
+                                    {isFinalized
+                                      ? "확정됨"
+                                      : hasProvidedInfo
+                                      ? "정보 제공됨"
+                                      : "대기중"}
+                                  </span>
+                                </div>
+                                <svg
+                                  className={`w-5 h-5 transition-transform ${
+                                    openItems[requestIndex]?.[absoluteIndex]
+                                      ? "transform rotate-180"
+                                      : ""
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </button>
+
+                              {/* 상세 정보 패널 */}
+                              {openItems[requestIndex]?.[absoluteIndex] && (
+                                <div className="p-4 border-t divide-y divide-gray-100">
+                                  {item.provideItemInfo &&
+                                    Object.entries(item.provideItemInfo).map(
+                                      ([fieldName, info]) => {
+                                        if (!info) {
+                                          return (
+                                            <div
+                                              key={fieldName}
+                                              className="text-sm flex items-center space-x-2 py-2"
+                                            >
+                                              <span className="font-medium text-gray-500 min-w-[80px]">
+                                                {getFieldDisplayName(fieldName)}
+                                                :
+                                              </span>
+                                              <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800">
+                                                정보 제공 대기중
+                                              </span>
+                                            </div>
+                                          );
+                                        }
+
+                                        // saleInfo 배열 처리
+                                        if (
+                                          fieldName === "saleInfo" &&
+                                          Array.isArray(info)
+                                        ) {
+                                          return (
+                                            <div
+                                              key={fieldName}
+                                              className="flex py-2 items-center space-x-2 text-sm"
+                                            >
+                                              <span className="text-sm font-medium text-gray-500">
+                                                {getFieldDisplayName(fieldName)}
+                                                :
+                                              </span>
+                                              <div className="font-medium mt-1 space-y-1">
+                                                {info.map((saleInfo, idx) => (
+                                                  <div
+                                                    key={idx}
+                                                    className="ml-2 flex items-center space-x-2"
+                                                  >
+                                                    {(saleInfo.provideStatus ===
+                                                      ProvideStatus.PROVIDED ||
+                                                      saleInfo.provideStatus ===
+                                                        ProvideStatus.FINALIZED) && (
+                                                      <a
+                                                        href={saleInfo.value}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-500 hover:text-blue-600 text-sm"
+                                                      >
+                                                        판매 링크
+                                                      </a>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
+                                        // 일반 필드 처리
+                                        return (
+                                          <div
+                                            key={fieldName}
+                                            className="text-sm flex items-center space-x-2 py-2"
+                                          >
+                                            <span className="font-medium text-gray-500 min-w-[80px]">
+                                              {getFieldDisplayName(fieldName)}:
+                                            </span>
+                                            {(info.provideStatus ===
+                                              ProvideStatus.PROVIDED ||
+                                              info.provideStatus ===
+                                                ProvideStatus.FINALIZED) && (
+                                              <span className="text-gray-700">
+                                                {info.value}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 
 import type { ItemClass, ItemSubClass, MainCategory, SubCategoryMap, InstanceMap } from "@/constants/categories";
+import { ProvideStatus } from "@/constants/schema";
 
 /**
  * The ImageInfo interface defines the structure for image information.
@@ -446,12 +447,12 @@ interface ItemCategory<M extends MainCategory = MainCategory> {
 }
 
 interface ProvideData {
-  docId: string;
-  name: string;
-  brand: string;
-  saleUrl: string;
-  subCategory: string;
-  productType: string;
+  docId?: string;
+  name?: string;
+  brand?: string;
+  saleUrl?: string;
+  subCategory?: string;
+  productType?: string;
   material?: string;
   designedBy?: string;
 }
@@ -461,4 +462,33 @@ interface BrandData {
   ko: string;
   docId: string;
   logoImageUrl: string;
+}
+
+interface ProvideInfo<T> {
+  who: string;
+  value: T;
+  provideStatus: ProvideStatus;
+}
+
+interface ProvideItemInfo {
+  name?: ProvideInfo<string>;
+  brand?: ProvideInfo<string>;
+  subCategory?: ProvideInfo<string>;
+  productType?: ProvideInfo<string>;
+  saleInfo?: ProvideInfo<string>[];
+  material?: ProvideInfo<string>;
+  designedBy?: ProvideInfo<string>;
+}
+
+interface ProvidedItemDetail {
+  itemDocId: string;
+  position: Position;
+  provideItemInfo: ProvideItemInfo;
+}
+
+interface ItemRequest {
+  imageDocId: string | null;
+  imageUrl: string | null;
+  isRequested: boolean;
+  items: ProvidedItemDetail[] | null;
 }
