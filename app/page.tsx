@@ -19,6 +19,8 @@ import {
   ProvideData,
   ItemRequest,
   ProvidedItemDetail,
+  ProvideItemInfoWithMetadata,
+  FinalizeItemRequest,
 } from "@/types/model";
 import {
   ItemClass,
@@ -40,7 +42,7 @@ const AdminDashboard = () => {
     { id: "images", name: "이미지 요청" },
     { id: "artists", name: "아티스트 요청" },
     { id: "brands", name: "브랜드 요청" },
-    { id: "finalize", name: "확정 관리" },
+    { id: "finalize", name: "아이템 확정" },
   ] as const;
 
   const handleLogin = () => {
@@ -132,6 +134,7 @@ const AdminDashboard = () => {
         {currentTab === "images" && <ImageRequestSection />}
         {currentTab === "artists" && <ArtistRequestSection />}
         {currentTab === "brands" && <BrandRequestSection />}
+        {currentTab === "finalize" && <FinalizeSection />}
       </div>
     </div>
   );
@@ -310,6 +313,7 @@ const ImageRequestSection = () => {
           fetchImageRequests();
         });
     }
+    sessionStorage.removeItem(`modifiedRequest_${request.Id}`);
   };
 
   const getModifiedData = (requestId: string) => {
@@ -756,6 +760,7 @@ const ArtistRequestSection = () => {
                     id={index}
                     requestId={artist._id}
                     artistName={artist.doc.name}
+                    onUpdate={fetchArtistRequests}
                     artistCategory={artist.doc.category}
                   />
                 </td>
@@ -959,21 +964,6 @@ const RequestSection = () => {
     }
   }, [currentStep, selectedCeleb, selectedImage, points]);
 
-  const usePersistedState = <T,>(key: string, initialState: T) => {
-    const [state, setState] = useState<T>(() => {
-      const storedValue = sessionStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) : initialState;
-    });
-
-    useEffect(() => {
-      sessionStorage.setItem(key, JSON.stringify(state));
-    }, [key, state]);
-
-    return [state, setState] as const;
-  };
-
-  const [context] = usePersistedState("context", "");
-
   const defaultState = () => {
     setCurrentStep(1);
     setSelectedCeleb(null);
@@ -987,7 +977,7 @@ const RequestSection = () => {
       alert("Please select a celebrity and upload an image");
       return;
     }
-    const title = `${context}에서의 ${selectedCeleb.name}`;
+    const title = `${selectedCeleb.name} 아이템 요청`;
     const items: RequestedItem[] = [];
     for (const point of points) {
       if (!point.itemClass || !point.itemSubClass || !point.category) {
@@ -1280,6 +1270,8 @@ const RequestSection = () => {
                         }
                       >
                         <option value="kpop">K-POP</option>
+                        <option value="singer">가수</option>
+                        <option value="rapper">래퍼</option>
                         <option value="actor">배우</option>
                         <option value="athlete">운동선수</option>
                       </select>
@@ -1353,7 +1345,6 @@ const RequestSection = () => {
   const Step2 = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [context, setContext] = usePersistedState("context", "");
 
     const handleDrag = (e: React.DragEvent) => {
       e.preventDefault();
@@ -1496,58 +1487,6 @@ const RequestSection = () => {
                     />
                   </svg>
                 </button>
-              </div>
-
-              {/* Context Information Input Section */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    컨텍스트 정보
-                  </label>
-                  <textarea
-                    placeholder="예: 인천공항 출국길, 2024 SS 패션위크, 신곡 뮤직비디오 등"
-                    value={context}
-                    onChange={(e) => setContext(e.target.value)}
-                    className="w-full p-3 border rounded-lg resize-none h-24 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>모르는 경우 건너뛰기 가능</span>
-                  <span className="text-right">{context.length}/200자</span>
-                </div>
-
-                {/* Preview of Input Information */}
-                {context && (
-                  <div className="bg-white p-3 rounded-lg border border-gray-200">
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">{context}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -2709,7 +2648,341 @@ const MyPageSection = () => {
 };
 
 const FinalizeSection = () => {
-  return <div>FinalizeSection</div>;
+  const [items, setItems] = useState<ProvideItemInfoWithMetadata[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [finalizeItemRequest, setFinalizeItemRequest] =
+    useState<FinalizeItemRequest | null>(null);
+  console.log(finalizeItemRequest);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const toggleSelectItem = (itemDocId: string, field: string, url?: string) => {
+    const fieldId = `${itemDocId}-${field}`;
+
+    setSelectedItems((prev) => {
+      const newSelectedItems = new Set(prev);
+      if (newSelectedItems.has(fieldId)) {
+        newSelectedItems.delete(fieldId);
+      } else {
+        newSelectedItems.add(fieldId);
+      }
+      return newSelectedItems;
+    });
+
+    setFinalizeItemRequest((prev) => {
+      const newRequest: FinalizeItemRequest = {
+        itemDocId,
+        fields: prev ? [...prev.fields] : [],
+        saleInfoUrls: prev?.saleInfoUrls || [],
+      };
+
+      if (field.startsWith("saleInfo-")) {
+        if (url) {
+          if (newRequest.saleInfoUrls?.includes(url)) {
+            newRequest.saleInfoUrls = newRequest.saleInfoUrls.filter(
+              (u) => u !== url
+            );
+          } else {
+            newRequest.saleInfoUrls?.push(url);
+          }
+        }
+      } else {
+        if (newRequest.fields.includes(field)) {
+          // 일반 필드 제거
+          newRequest.fields = newRequest.fields.filter((f) => f !== field);
+        } else {
+          // 일반 필드 추가
+          newRequest.fields.push(field);
+        }
+      }
+
+      // fields와 saleInfoUrls 모두 비어있으면 null 반환
+      return newRequest.fields.length === 0 &&
+        newRequest.saleInfoUrls?.length === 0
+        ? null
+        : newRequest;
+    });
+  };
+
+  const fetchProvidedItems = async () => {
+    try {
+      const response = await networkManager.request(
+        "items/provided",
+        "GET",
+        null
+      );
+      const convertedData = response.data.items.map((item: any) => {
+        return convertKeysToCamelCase(item);
+      });
+      setItems(convertedData);
+    } catch (error) {
+      console.error("아이템 정보를 불러오는데 실패했습니다:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProvidedItems();
+  }, []);
+
+  const handleFinalizeSelected = async () => {
+    try {
+      await networkManager.request("/items/finalize", "POST", {
+        itemDocIds: Array.from(selectedItems),
+      });
+      alert("선택된 아이템이 확정되었습니다.");
+      fetchProvidedItems();
+    } catch (error) {
+      console.error("아이템 확정에 실패했습니다:", error);
+      alert("아이템 확정에 실패했습니다.");
+    }
+  };
+
+  const handleImageUpload = async (file: File, itemDocId: string) => {
+    try {
+      const buffer = await file.arrayBuffer();
+      const base64Image = arrayBufferToBase64(buffer);
+
+      setSelectedFile(file);
+
+      setFinalizeItemRequest((prev) => {
+        if (!prev) {
+          return {
+            itemDocId,
+            fields: [],
+            base64Image,
+          };
+        }
+        return {
+          ...prev,
+          base64Image,
+        };
+      });
+    } catch (error) {
+      console.error("이미지 변환 실패:", error);
+      alert("이미지 업로드에 실패했습니다.");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          아이템 정보 확정
+        </h2>
+        <button
+          onClick={handleFinalizeSelected}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors"
+          disabled={selectedItems.size === 0}
+        >
+          선택 항목 확정
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="flex items-center justify-center min-h-[400px] bg-gradient-to-b from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
+          <div className="flex flex-col items-center justify-center space-y-4 px-4">
+            <svg
+              className="w-16 h-16 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              확정할 아이템이 없습니다
+            </h3>
+            <p className="text-gray-500 max-w-sm text-center leading-relaxed">
+              제공된 아이템 정보를 확인하고 확정하세요
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <div
+              key={item.itemDocId}
+              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="p-6 space-y-4">
+                <div className="relative w-full aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  {!item.isImage && (
+                    <label
+                      htmlFor={`image-upload-${item.itemDocId}`}
+                      className="inset-0 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
+                    >
+                      {selectedFile ? (
+                        <div className="relative w-full h-full aspect-square">
+                          <img
+                            src={URL.createObjectURL(selectedFile)}
+                            alt="Preview"
+                            className="object-cover w-full h-full rounded-lg aspect-square"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity">
+                            <button className="px-4 py-2 bg-white rounded-md shadow-sm text-sm font-medium text-gray-700">
+                              이미지 변경
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button className="px-4 py-2 rounded-md shadow-sm text-sm font-medium text-gray-700">
+                          아이템 이미지 업로드
+                        </button>
+                      )}
+                    </label>
+                  )}
+                  <input
+                    id={`image-upload-${item.itemDocId}`}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageUpload(file, item.itemDocId);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  {item.provideItemInfo.name?.value && (
+                    <div className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(`${item.itemDocId}-name`)}
+                        onChange={() =>
+                          toggleSelectItem(item.itemDocId, "name")
+                        }
+                        className="mr-2"
+                      />
+                      <span className="w-20 text-gray-500">아이템명</span>
+                      <span className="text-gray-900">
+                        {item.provideItemInfo.name.value}
+                      </span>
+                    </div>
+                  )}
+                  {item.provideItemInfo.brand?.value && (
+                    <div className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(`${item.itemDocId}-brand`)}
+                        onChange={() =>
+                          toggleSelectItem(item.itemDocId, "brand")
+                        }
+                        className="mr-2"
+                      />
+                      <span className="w-20 text-gray-500">브랜드</span>
+                      <span className="text-gray-900">
+                        {item.provideItemInfo.brand.value}
+                      </span>
+                    </div>
+                  )}
+                  {item.provideItemInfo.subCategory?.value && (
+                    <div className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(
+                          `${item.itemDocId}-subCategory`
+                        )}
+                        onChange={() =>
+                          toggleSelectItem(item.itemDocId, "subCategory")
+                        }
+                        className="mr-2"
+                      />
+                      <span className="w-20 text-gray-500">카테고리</span>
+                      <span className="text-gray-900">
+                        {item.provideItemInfo.subCategory.value}
+                      </span>
+                    </div>
+                  )}
+                  {item.provideItemInfo.productType?.value && (
+                    <div className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(
+                          `${item.itemDocId}-productType`
+                        )}
+                        onChange={() =>
+                          toggleSelectItem(item.itemDocId, "productType")
+                        }
+                        className="mr-2"
+                      />
+                      <span className="w-20 text-gray-500">상품 종류</span>
+                      <span className="text-gray-900">
+                        {item.provideItemInfo.productType.value}
+                      </span>
+                    </div>
+                  )}
+                  {item.provideItemInfo.material?.value && (
+                    <div className="flex items-center text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(
+                          `${item.itemDocId}-material`
+                        )}
+                        onChange={() =>
+                          toggleSelectItem(item.itemDocId, "material")
+                        }
+                        className="mr-2"
+                      />
+                      <span className="w-20 text-gray-500">소재</span>
+                      <span className="text-gray-900">
+                        {item.provideItemInfo.material.value}
+                      </span>
+                    </div>
+                  )}
+                  {item.provideItemInfo.saleInfo?.map((sale, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center p-3 shadow-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.has(
+                          `${item.itemDocId}-saleInfo-${index}`
+                        )}
+                        onChange={() =>
+                          toggleSelectItem(
+                            item.itemDocId,
+                            `saleInfo-${index}`,
+                            sale.value // URL 전달
+                          )
+                        }
+                        className="mr-2"
+                      />
+                      <a
+                        href={sale.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        판매 링크 {index + 1}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default AdminDashboard;

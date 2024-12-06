@@ -13,11 +13,13 @@ export const ArtistModal = ({
   requestId,
   artistName,
   artistCategory,
+  onUpdate,
 }: {
   id: number;
   requestId: string;
   artistName: Record<string, string>;
   artistCategory: string;
+  onUpdate: () => void;
 }) => {
   const [name, setName] = useState<Record<string, string>>({
     ko: artistName?.ko || "",
@@ -93,6 +95,7 @@ export const ArtistModal = ({
       requestBody
     );
     defaultState();
+    onUpdate();
     alert("Artist is added successfully!");
   };
 

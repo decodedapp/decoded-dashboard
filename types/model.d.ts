@@ -470,6 +470,19 @@ interface ProvideInfo<T> {
   provideStatus: ProvideStatus;
 }
 
+interface ProvideItemInfoWithMetadata {
+  itemDocId: string;
+  isImage: boolean;
+  provideItemInfo: ProvideItemInfo;
+}
+
+interface FinalizeItemRequest {
+  itemDocId: string;
+  base64Image?: string;
+  fields: string[];
+  saleInfoUrls?: string[];
+}
+
 interface ProvideItemInfo {
   name?: ProvideInfo<string>;
   brand?: ProvideInfo<string>;
