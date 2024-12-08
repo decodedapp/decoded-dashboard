@@ -29,7 +29,11 @@ import {
   categoriesBySubClass,
 } from "@/constants/categories";
 import { ProvideStatus } from "@/constants/schema";
-import { arrayBufferToBase64, convertKeysToCamelCase } from "@/utils/util";
+import {
+  arrayBufferToBase64,
+  convertKeysToCamelCase,
+  convertKeysToSnakeCase,
+} from "@/utils/util";
 
 type TabType = "requests" | "images" | "artists" | "brands" | "finalize";
 
@@ -856,7 +860,7 @@ const BrandRequestSection = () => {
               brandRequests.map((request, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.doc.name.ko || "이름 없음"}
+                    {request.doc.name.ko || request.doc.name.en || "이름 없음"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(request.requested_at).toLocaleDateString(
@@ -1898,6 +1902,7 @@ const DecodingProgress = ({ progress }: { progress: number }) => {
 
 const ProvideSection = () => {
   const [images, setImages] = useState<ImageDocument[]>([]);
+  console.log("ProvideSection =>", images);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -1970,7 +1975,7 @@ const ProvideSection = () => {
         null
       );
       const images = convertKeysToCamelCase(response.data.images);
-      console.log(images);
+      console.log("Provide Section =>", images);
       setImages(images);
     } catch (error) {
       console.error("이미지 로딩 실패:", error);
@@ -2085,40 +2090,50 @@ const ProvideSection = () => {
                             key={index}
                             className="group flex items-center gap-4 bg-[#1A1A1A] p-4 hover:bg-[#222222] transition-colors border border-zinc-800"
                           >
-                            {/* 아이템 이미지 (placeholder) */}
-                            <div className="w-16 h-16 bg-white/[0.5] rounded flex items-center justify-center flex-shrink-0">
-                              <svg
-                                className="w-8 h-8 text-zinc-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            {/* 아이템 이미지 */}
+                            <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden">
+                              {itemDoc.item.item.imageUrl ? (
+                                <img
+                                  src={itemDoc.item.item.imageUrl}
+                                  alt="아이템 이미지"
+                                  className="w-full h-full object-cover"
                                 />
-                              </svg>
+                              ) : (
+                                <div className="w-full h-full bg-white/[0.5] flex items-center justify-center">
+                                  <svg
+                                    className="w-8 h-8 text-zinc-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
                             </div>
 
                             {/* 아이템 정보 */}
                             <div className="flex-1 min-w-0">
                               {/* 카테고리 (소문자로 표시) */}
                               <div className="text-sm text-zinc-400 uppercase tracking-wide font-medium">
-                                {itemDoc.item.category}
+                                {itemDoc.item.item.category}
                               </div>
 
                               {/* 브랜드명 (placeholder) */}
                               <div className="text-lg font-medium text-white mt-1">
-                                {itemDoc.item.name?.value || (
+                                {itemDoc.item.brandName || (
                                   <div className="h-6 w-32 bg-white/[0.5] rounded animate-pulse"></div>
                                 )}
                               </div>
 
                               {/* 아이템명 (placeholder) */}
                               <div className="text-sm text-zinc-300 mt-0.5">
-                                {itemDoc.item.name?.value || (
+                                {itemDoc.item.item.name?.provideInfo?.value || (
                                   <div className="h-4 w-48 bg-white/[0.5] rounded animate-pulse"></div>
                                 )}
                               </div>
@@ -2126,22 +2141,24 @@ const ProvideSection = () => {
 
                             {/* 포인트와 제공 버튼 */}
                             <div className="flex items-center gap-3">
-                              {/* 포인트 표시 */}
-                              <div className="flex items-center gap-2 bg-white/[0.08] px-3 py-2 rounded">
-                                <svg
-                                  className="w-5 h-5 text-yellow-400"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.7 10.7l2.3-2.3V14a1 1 0 102 0V8.4l2.3 2.3a1 1 0 001.4-1.4l-4-4a1 1 0 00-1.4 0l-4 4a1 1 0 001.4 1.4z" />
-                                </svg>
-                                <span className="text-base font-medium text-white">
-                                  10
-                                </span>
-                              </div>
+                              {/* 포인트 표시 - isDecoded가 false일 때만 표시 */}
+                              {!itemDoc.isDecoded && (
+                                <div className="flex items-center gap-2 bg-white/[0.08] px-3 py-2 rounded">
+                                  <svg
+                                    className="w-5 h-5 text-yellow-400"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.7 10.7l2.3-2.3V14a1 1 0 102 0V8.4l2.3 2.3a1 1 0 001.4-1.4l-4-4a1 1 0 00-1.4 0l-4 4a1 1 0 001.4 1.4z" />
+                                  </svg>
+                                  <span className="text-base font-medium text-white">
+                                    10
+                                  </span>
+                                </div>
+                              )}
 
-                              {/* 제공 버튼 */}
-                              {isRequestedStatus && (
+                              {/* 제공 버튼 또는 구매하기 버튼 */}
+                              {!itemDoc.isDecoded ? (
                                 <button
                                   onClick={() =>
                                     handleProvideClick(
@@ -2152,10 +2169,67 @@ const ProvideSection = () => {
                                     )
                                   }
                                   className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-medium 
-                 text-base transition-colors shadow-lg shadow-blue-500/20"
+                text-base transition-colors shadow-lg shadow-blue-500/20"
                                 >
                                   제공
                                 </button>
+                              ) : (
+                                itemDoc.item.item.saleInfo?.provideInfo?.map(
+                                  (provideInfo, idx) =>
+                                    provideInfo.value &&
+                                    provideInfo.provideStatus ===
+                                      "finalized" && (
+                                      <a
+                                        key={idx}
+                                        href={provideInfo.value.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`group inline-flex items-center gap-2 px-4 py-2 rounded-md
+                                        border transition-all duration-200 text-sm font-medium
+                                        ${
+                                          provideInfo.value.isSoldout
+                                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                            : "bg-white/[0.05] border-white/10 text-white hover:bg-white/[0.1] hover:border-white/20"
+                                        }`}
+                                      >
+                                        {provideInfo.value.isSoldout ? (
+                                          <>
+                                            <span>품절</span>
+                                            <svg
+                                              className="w-4 h-4"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={1.5}
+                                                d="M6 18L18 6M6 6l12 12"
+                                              />
+                                            </svg>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span>구매하기</span>
+                                            <svg
+                                              className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={1.5}
+                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                              />
+                                            </svg>
+                                          </>
+                                        )}
+                                      </a>
+                                    )
+                                )
                               )}
                             </div>
                           </div>
@@ -2184,7 +2258,7 @@ const ProvideSection = () => {
               <ProvidePanel
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                item={selectedItem?.item.item!}
+                item={selectedItem?.item.item.item!}
                 onSubmit={handleProvideSubmit}
               />
             </div>
@@ -2227,8 +2301,6 @@ const MyPageSection = () => {
       subCategory: "카테고리",
       productType: "상품 종류",
       saleInfo: "구매 정보",
-      material: "소재",
-      designedBy: "디자이너",
     };
     return fieldNameMap[fieldName] || fieldName;
   };
@@ -2568,6 +2640,13 @@ const MyPageSection = () => {
                                           );
                                         }
 
+                                        if (
+                                          fieldName === "material" ||
+                                          fieldName === "designedBy"
+                                        ) {
+                                          return null;
+                                        }
+
                                         // saleInfo 배열 처리
                                         if (
                                           fieldName === "saleInfo" &&
@@ -2655,8 +2734,14 @@ const FinalizeSection = () => {
     useState<FinalizeItemRequest | null>(null);
   console.log(finalizeItemRequest);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
-  const toggleSelectItem = (itemDocId: string, field: string, url?: string) => {
+  const toggleSelectItem = (
+    itemDocId: string,
+    field: string,
+    action: "finalize" | "reset",
+    url?: string
+  ) => {
     const fieldId = `${itemDocId}-${field}`;
 
     setSelectedItems((prev) => {
@@ -2672,33 +2757,77 @@ const FinalizeSection = () => {
     setFinalizeItemRequest((prev) => {
       const newRequest: FinalizeItemRequest = {
         itemDocId,
-        fields: prev ? [...prev.fields] : [],
+        finalizeFields: prev ? [...prev.finalizeFields] : [],
+        resetFields: prev ? [...(prev.resetFields || [])] : [],
         saleInfoUrls: prev?.saleInfoUrls || [],
+        resetSaleInfoUrls: prev?.resetSaleInfoUrls || [], // 새로운 필드 추가
+        base64Image: prev?.base64Image,
       };
 
       if (field.startsWith("saleInfo-")) {
         if (url) {
-          if (newRequest.saleInfoUrls?.includes(url)) {
-            newRequest.saleInfoUrls = newRequest.saleInfoUrls.filter(
+          if (action === "finalize") {
+            // 리셋 URL 목록에서 제거
+            newRequest.resetSaleInfoUrls = newRequest.resetSaleInfoUrls?.filter(
               (u) => u !== url
             );
+
+            if (newRequest.saleInfoUrls?.includes(url)) {
+              newRequest.saleInfoUrls = newRequest.saleInfoUrls?.filter(
+                (u) => u !== url
+              );
+            } else {
+              newRequest.saleInfoUrls?.push(url);
+            }
           } else {
-            newRequest.saleInfoUrls?.push(url);
+            // reset action
+            // 확정 URL 목록에서 제거
+            newRequest.saleInfoUrls = newRequest.saleInfoUrls?.filter(
+              (u) => u !== url
+            );
+
+            if (newRequest.resetSaleInfoUrls?.includes(url)) {
+              newRequest.resetSaleInfoUrls =
+                newRequest.resetSaleInfoUrls?.filter((u) => u !== url);
+            } else {
+              newRequest.resetSaleInfoUrls?.push(url);
+            }
           }
         }
       } else {
-        if (newRequest.fields.includes(field)) {
-          // 일반 필드 제거
-          newRequest.fields = newRequest.fields.filter((f) => f !== field);
+        if (action === "finalize") {
+          // 리셋 필드에서 제거
+          newRequest.resetFields = newRequest.resetFields?.filter(
+            (f) => f !== field
+          );
+
+          if (newRequest.finalizeFields?.includes(field)) {
+            newRequest.finalizeFields = newRequest.finalizeFields?.filter(
+              (f) => f !== field
+            );
+          } else {
+            newRequest.finalizeFields?.push(field);
+          }
         } else {
-          // 일반 필드 추가
-          newRequest.fields.push(field);
+          // 확정 필드에서 제거
+          newRequest.finalizeFields = newRequest.finalizeFields?.filter(
+            (f) => f !== field
+          );
+
+          if (newRequest.resetFields?.includes(field)) {
+            newRequest.resetFields = newRequest.resetFields?.filter(
+              (f) => f !== field
+            );
+          } else {
+            newRequest.resetFields?.push(field);
+          }
         }
       }
 
-      // fields와 saleInfoUrls 모두 비어있으면 null 반환
-      return newRequest.fields.length === 0 &&
-        newRequest.saleInfoUrls?.length === 0
+      return newRequest.finalizeFields?.length === 0 &&
+        newRequest.resetFields?.length === 0 &&
+        newRequest.saleInfoUrls?.length === 0 &&
+        newRequest.resetSaleInfoUrls?.length === 0
         ? null
         : newRequest;
     });
@@ -2706,6 +2835,8 @@ const FinalizeSection = () => {
 
   const fetchProvidedItems = async () => {
     try {
+      setSelectedItems(new Set());
+      setFinalizeItemRequest(null);
       const response = await networkManager.request(
         "items/provided",
         "GET",
@@ -2715,6 +2846,7 @@ const FinalizeSection = () => {
         return convertKeysToCamelCase(item);
       });
       setItems(convertedData);
+      console.log(convertedData);
     } catch (error) {
       console.error("아이템 정보를 불러오는데 실패했습니다:", error);
     } finally {
@@ -2726,16 +2858,31 @@ const FinalizeSection = () => {
     fetchProvidedItems();
   }, []);
 
-  const handleFinalizeSelected = async () => {
+  const handleFinalize = async () => {
+    setUploadLoading(true);
+    const converted = convertKeysToSnakeCase(finalizeItemRequest);
+    const fields = [];
+    if (finalizeItemRequest?.saleInfoUrls !== undefined) {
+      fields.push("sale_info");
+    }
+    for (const field of converted.finalize_fields) {
+      const snakeCaseField = field.replace(
+        /[A-Z]/g,
+        (letter: string) => `_${letter.toLowerCase()}`
+      );
+      fields.push(snakeCaseField);
+    }
+    converted.finalize_fields = fields;
+    console.log(converted);
     try {
-      await networkManager.request("/items/finalize", "POST", {
-        itemDocIds: Array.from(selectedItems),
-      });
+      await networkManager.request("finalize/item", "POST", converted);
       alert("선택된 아이템이 확정되었습니다.");
       fetchProvidedItems();
     } catch (error) {
       console.error("아이템 확정에 실패했습니다:", error);
       alert("아이템 확정에 실패했습니다.");
+    } finally {
+      setUploadLoading(false);
     }
   };
 
@@ -2750,7 +2897,7 @@ const FinalizeSection = () => {
         if (!prev) {
           return {
             itemDocId,
-            fields: [],
+            finalizeFields: [],
             base64Image,
           };
         }
@@ -2780,11 +2927,10 @@ const FinalizeSection = () => {
           아이템 정보 확정
         </h2>
         <button
-          onClick={handleFinalizeSelected}
+          onClick={fetchProvidedItems}
           className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors"
-          disabled={selectedItems.size === 0}
         >
-          선택 항목 확정
+          불러오기
         </button>
       </div>
 
@@ -2862,119 +3008,382 @@ const FinalizeSection = () => {
                 <div className="space-y-2">
                   {item.provideItemInfo.name?.value && (
                     <div className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(`${item.itemDocId}-name`)}
-                        onChange={() =>
-                          toggleSelectItem(item.itemDocId, "name")
-                        }
-                        className="mr-2"
-                      />
                       <span className="w-20 text-gray-500">아이템명</span>
-                      <span className="text-gray-900">
+                      <span className="text-gray-900 flex-1">
                         {item.provideItemInfo.name.value}
                       </span>
+                      <div className="flex gap-2 ml-2">
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(item.itemDocId, "name", "finalize")
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.finalizeFields?.includes(
+                              "name"
+                            )
+                              ? "bg-green-100 text-green-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(item.itemDocId, "name", "reset")
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.resetFields?.includes("name")
+                              ? "bg-red-100 text-red-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
                   {item.provideItemInfo.brand?.value && (
                     <div className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(`${item.itemDocId}-brand`)}
-                        onChange={() =>
-                          toggleSelectItem(item.itemDocId, "brand")
-                        }
-                        className="mr-2"
-                      />
                       <span className="w-20 text-gray-500">브랜드</span>
-                      <span className="text-gray-900">
-                        {item.provideItemInfo.brand.value}
+                      <span className="text-gray-900 flex-1">
+                        {item.brandName}
                       </span>
+                      <div className="flex gap-2 ml-2">
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(
+                              item.itemDocId,
+                              "brand",
+                              "finalize"
+                            )
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.finalizeFields?.includes(
+                              "brand"
+                            )
+                              ? "bg-green-100 text-green-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(item.itemDocId, "brand", "reset")
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.resetFields?.includes("brand")
+                              ? "bg-red-100 text-red-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
+
+                  {/* subCategory와 productType도 동일한 방식으로 수정 */}
                   {item.provideItemInfo.subCategory?.value && (
                     <div className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(
-                          `${item.itemDocId}-subCategory`
-                        )}
-                        onChange={() =>
-                          toggleSelectItem(item.itemDocId, "subCategory")
-                        }
-                        className="mr-2"
-                      />
                       <span className="w-20 text-gray-500">카테고리</span>
-                      <span className="text-gray-900">
+                      <span className="text-gray-900 flex-1">
                         {item.provideItemInfo.subCategory.value}
                       </span>
+                      <div className="flex gap-2 ml-2">
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(
+                              item.itemDocId,
+                              "subCategory",
+                              "finalize"
+                            )
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.finalizeFields?.includes(
+                              "subCategory"
+                            )
+                              ? "bg-green-100 text-green-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(
+                              item.itemDocId,
+                              "subCategory",
+                              "reset"
+                            )
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.resetFields?.includes(
+                              "subCategory"
+                            )
+                              ? "bg-red-100 text-red-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
                   {item.provideItemInfo.productType?.value && (
                     <div className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(
-                          `${item.itemDocId}-productType`
-                        )}
-                        onChange={() =>
-                          toggleSelectItem(item.itemDocId, "productType")
-                        }
-                        className="mr-2"
-                      />
                       <span className="w-20 text-gray-500">상품 종류</span>
-                      <span className="text-gray-900">
+                      <span className="text-gray-900 flex-1">
                         {item.provideItemInfo.productType.value}
                       </span>
+                      <div className="flex gap-2 ml-2">
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(
+                              item.itemDocId,
+                              "productType",
+                              "finalize"
+                            )
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.finalizeFields?.includes(
+                              "productType"
+                            )
+                              ? "bg-green-100 text-green-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() =>
+                            toggleSelectItem(
+                              item.itemDocId,
+                              "productType",
+                              "reset"
+                            )
+                          }
+                          className={`p-1.5 rounded-full transition-colors ${
+                            finalizeItemRequest?.resetFields?.includes(
+                              "productType"
+                            )
+                              ? "bg-red-100 text-red-600"
+                              : "hover:bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
-                  {item.provideItemInfo.material?.value && (
-                    <div className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(
-                          `${item.itemDocId}-material`
-                        )}
-                        onChange={() =>
-                          toggleSelectItem(item.itemDocId, "material")
-                        }
-                        className="mr-2"
-                      />
-                      <span className="w-20 text-gray-500">소재</span>
-                      <span className="text-gray-900">
-                        {item.provideItemInfo.material.value}
-                      </span>
-                    </div>
-                  )}
-                  {item.provideItemInfo.saleInfo?.map((sale, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center p-3 shadow-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(
-                          `${item.itemDocId}-saleInfo-${index}`
-                        )}
-                        onChange={() =>
-                          toggleSelectItem(
-                            item.itemDocId,
-                            `saleInfo-${index}`,
-                            sale.value // URL 전달
-                          )
-                        }
-                        className="mr-2"
-                      />
-                      <a
-                        href={sale.value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        판매 링크 {index + 1}
-                      </a>
-                    </div>
-                  ))}
+                  {item.provideItemInfo.saleInfo &&
+                    item.provideItemInfo.saleInfo.length > 0 && (
+                      <div className="space-y-2">
+                        {item.provideItemInfo.saleInfo.map((sale, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center text-sm gap-2"
+                          >
+                            <span className="text-gray-500 w-20">
+                              판매 링크
+                            </span>
+                            <a
+                              href={sale.value}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline flex-1"
+                            >
+                              링크 {index + 1}
+                            </a>
+                            <div className="flex gap-2 ml-2">
+                              <button
+                                onClick={() =>
+                                  toggleSelectItem(
+                                    item.itemDocId,
+                                    `saleInfo-${index}`,
+                                    "finalize",
+                                    sale.value
+                                  )
+                                }
+                                className={`p-1.5 rounded-full transition-colors ${
+                                  finalizeItemRequest?.saleInfoUrls?.includes(
+                                    sale.value
+                                  )
+                                    ? "bg-green-100 text-green-600"
+                                    : "hover:bg-gray-100 text-gray-400"
+                                }`}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() =>
+                                  toggleSelectItem(
+                                    item.itemDocId,
+                                    `saleInfo-${index}`,
+                                    "reset",
+                                    sale.value
+                                  )
+                                }
+                                className={`p-1.5 rounded-full transition-colors ${
+                                  finalizeItemRequest?.resetSaleInfoUrls?.includes(
+                                    sale.value
+                                  )
+                                    ? "bg-red-100 text-red-600"
+                                    : "hover:bg-gray-100 text-gray-400"
+                                }`}
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleFinalize}
+                    disabled={uploadLoading}
+                    className={`
+                      px-4 py-2 rounded-md shadow-sm
+                      ${
+                        uploadLoading
+                          ? "bg-blue-400 cursor-not-allowed"
+                          : "bg-blue-500 hover:bg-blue-600"
+                      }
+                      text-white transition-colors
+                      min-w-[80px] flex items-center justify-center
+                    `}
+                  >
+                    {uploadLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>처리중</span>
+                      </div>
+                    ) : (
+                      "확정"
+                    )}
+                  </button>
                 </div>
               </div>
             </div>

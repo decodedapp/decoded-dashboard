@@ -235,7 +235,7 @@ export interface BrandInfo {
   cd?: Record<string, string>[];
   websiteUrl?: string;
   logoImageUrl?: string;
-  snsInfo?: Record<string, string>;
+  snsInfo?: SnsInfo[];
   tags?: Record<string, string[]>;
 }
 
@@ -385,11 +385,9 @@ interface SaleInfo {
 }
 
 interface ItemDetail<T> {
-  finalizedAt: string;
-  provideStatus: "requested" | "confirmed" | "finalized";
-  provider: string;
+  provideInfo: ProvideInfo<T>;
   requester: string;
-  value: T;
+  requestedAt: string;
 }
 
 interface ItemDocument {
@@ -398,7 +396,7 @@ interface ItemDocument {
   brand: ItemDetail<string>;
   designedBy: ItemDetail<string>;
   saleInfo: ItemDetail<SaleInfo[]>;
-  imageUrl: ItemDetail<string>;
+  imageUrl: string;
   itemClass: string;
   itemSubClass: string;
   category: string;
@@ -410,10 +408,16 @@ interface ItemDocument {
   createdAt: string;
 }
 
+interface ItemDocumentWithBrandInfo {
+  item: ItemDocument;
+  brandName: string;
+  brandLogoImageUrl: string;
+}
+
 interface Item {
   category: string;
   isDecoded: boolean;
-  item: ItemDocument;
+  item: ItemDocumentWithBrandInfo;
   position: {
     top: string;
     left: string;
@@ -473,14 +477,17 @@ interface ProvideInfo<T> {
 interface ProvideItemInfoWithMetadata {
   itemDocId: string;
   isImage: boolean;
+  brandName: string;
   provideItemInfo: ProvideItemInfo;
 }
 
 interface FinalizeItemRequest {
   itemDocId: string;
   base64Image?: string;
-  fields: string[];
+  resetFields?: string[];
+  finalizeFields: string[];
   saleInfoUrls?: string[];
+  resetSaleInfoUrls?: string[];
 }
 
 interface ProvideItemInfo {

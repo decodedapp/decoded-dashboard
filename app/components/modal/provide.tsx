@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { ItemDocument, ProvideData, BrandData } from "@/types/model";
+import {
+  ItemDocument,
+  ProvideData,
+  BrandData,
+  ItemDetail,
+} from "@/types/model";
 import {
   MainCategory,
   SubCategoryMap,
@@ -16,6 +21,11 @@ interface ProvideModalProps {
   onClose: () => void;
   onSubmit: (data: ProvideData) => void;
   item: ItemDocument;
+}
+
+interface FieldStatus {
+  disabled: boolean;
+  status?: "provided" | "finalized";
 }
 
 export const ProvidePanel = ({
@@ -109,6 +119,40 @@ export const ProvidePanel = ({
     setSelectedInstance(undefined);
     setBrandSearch("");
     onClose();
+  };
+
+  const isFieldDisabled = (fieldKey: keyof ItemDocument) => {
+    const field = item[fieldKey];
+    if (field && typeof field === "object" && "provideInfo" in field) {
+      const provideInfo = (field as ItemDetail<any>).provideInfo;
+      return (
+        provideInfo?.provideStatus === "provided" ||
+        provideInfo?.provideStatus === "finalized"
+      );
+    }
+    return false;
+  };
+  const getFieldStatus = (fieldKey: keyof ItemDocument): FieldStatus => {
+    const field = item[fieldKey];
+    if (field && typeof field === "object" && "provideInfo" in field) {
+      const provideInfo = (field as ItemDetail<any>).provideInfo;
+      if (
+        provideInfo?.provideStatus === "provided" ||
+        provideInfo?.provideStatus === "finalized"
+      ) {
+        return {
+          disabled: true,
+          status: provideInfo.provideStatus,
+        };
+      }
+    }
+    return { disabled: false };
+  };
+
+  const getStatusMessage = (status?: "provided" | "finalized") => {
+    if (status === "provided") return "이미 정보가 제공되어 검토 중입니다";
+    if (status === "finalized") return "이미 확정된 정보입니다";
+    return "";
   };
 
   useEffect(() => {
@@ -208,12 +252,15 @@ export const ProvidePanel = ({
                         subCategory: sub,
                       });
                     }}
+                    disabled={isFieldDisabled("subCategory")}
                     className={`px-4 py-2 text-sm rounded-md border transition-all duration-200 
-                    ${
-                      selectedSub === sub
-                        ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20"
-                        : "bg-[#1A1A1A] text-white border-white/5 hover:bg-[#252525] hover:border-blue-500/50 hover:scale-[1.02] hover:shadow-md"
-                    }`}
+                      ${
+                        isFieldDisabled("subCategory")
+                          ? "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
+                          : selectedSub === sub
+                          ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20"
+                          : "bg-[#1A1A1A] text-white border-white/5 hover:bg-[#252525]"
+                      }`}
                   >
                     {sub}
                   </button>
@@ -260,11 +307,19 @@ export const ProvidePanel = ({
                 placeholder="브랜드를 검색하세요"
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
-                className="w-full px-4 py-3 bg-[#1A1A1A] rounded-lg border border-white/5 
-                        text-white placeholder-gray-500 focus:border-blue-500 
-                        focus:ring-1 focus:ring-blue-500 transition-colors outline-none
-                        hover:border-white/10"
+                disabled={getFieldStatus("brand").disabled}
+                className={`w-full px-4 py-3 rounded-lg border transition-colors outline-none
+                  ${
+                    getFieldStatus("brand").disabled
+                      ? "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
+                      : "bg-[#1A1A1A] text-white border-white/5 focus:border-blue-500"
+                  }`}
               />
+              {getFieldStatus("brand").disabled && (
+                <div className="absolute invisible group-hover:visible w-full p-2 bg-gray-800 text-sm text-gray-300 rounded-md shadow-lg -bottom-12 left-0 z-10">
+                  {getStatusMessage(getFieldStatus("brand").status)}
+                </div>
+              )}
               <div className="mt-2">
                 {brandSearch.length > 0 &&
                   filteredBrands.map((brand, index) => (
@@ -369,38 +424,12 @@ export const ProvidePanel = ({
                     name: e.target.value,
                   })
                 }
-                disabled={!isSaleUrlEntered}
+                disabled={!isSaleUrlEntered || isFieldDisabled("name")}
                 className={`w-full px-4 py-3 rounded-lg border transition-colors outline-none
                   ${
-                    isSaleUrlEntered
-                      ? "bg-[#1A1A1A] text-white border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 hover:border-white/10"
-                      : "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-                  }`}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                소재(추가 보상)
-              </label>
-              <input
-                type="text"
-                placeholder={
-                  isSaleUrlEntered
-                    ? "소재를 입력하세요"
-                    : "판매 URL을 입력하면 활성화됩니다"
-                }
-                onChange={(e) =>
-                  setProvideData({
-                    ...provideData,
-                    material: e.target.value,
-                  })
-                }
-                disabled={!isSaleUrlEntered}
-                className={`w-full px-4 py-3 rounded-lg border transition-colors outline-none
-                  ${
-                    isSaleUrlEntered
-                      ? "bg-[#1A1A1A] text-white border-white/5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 hover:border-white/10"
-                      : "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
+                    isFieldDisabled("name")
+                      ? "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
+                      : "bg-[#1A1A1A] text-white border-white/5 focus:border-blue-500"
                   }`}
               />
             </div>

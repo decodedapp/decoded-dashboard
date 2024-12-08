@@ -51,10 +51,14 @@ export const BrandModal = ({
       alert("Brand category or creative director is not set!");
       return;
     }
+    const snsInfo = Object.entries(sns).map(([platform, url]) => ({
+      platform: platform,
+      url: url,
+    }));
     const newBrandInfo: BrandInfo = {
       name: brandName,
       websiteUrl: websiteUrl,
-      snsInfo: sns,
+      snsInfo: snsInfo,
     };
     const buf = await logoImage.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
@@ -62,6 +66,7 @@ export const BrandModal = ({
       brandInfo: newBrandInfo,
       imageFile: base64,
     };
+    console.log("uploadBrand", uploadBrand);
     await networkManager
       .request(`upload/brand?request=${requestId}`, "POST", uploadBrand)
       .then((_) => {
