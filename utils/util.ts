@@ -8,10 +8,6 @@ export const validateEmail = (email: string): boolean => {
   return re.test(String(email).toLowerCase());
 };
 
-export function create_doc_id(name: string): string {
-  return sha256(name);
-}
-
 export function getByteSize(str: string) {
   return new Blob([str]).size;
 }
@@ -43,3 +39,59 @@ export async function ConvertImageAndCompress(
   );
   return compressedHoverFile;
 }
+
+export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+};
+
+export const camelToSnake = (str: string): string => {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+};
+
+export const snakeToCamel = (str: string): string => {
+  return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+};
+
+export const convertKeysToSnakeCase = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') {
+        return obj;
+    }
+
+    if (Array.isArray(obj)) {  // constructor 대신 Array.isArray 사용
+        return obj.map(convertKeysToSnakeCase);
+    }
+
+    if (obj && typeof obj === 'object') {  // constructor 체크 대신 타입 체크
+        return Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [
+                camelToSnake(key),
+                convertKeysToSnakeCase(value)
+            ])
+        );
+    }
+
+    return obj;
+}
+
+export const convertKeysToCamelCase = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(v => convertKeysToCamelCase(v));
+  } else if (obj !== null && obj.constructor === Object) {
+    return Object.keys(obj).reduce((result, key) => {
+      const newKey = snakeToCamel(key);
+      result[newKey] = convertKeysToCamelCase(obj[key]);
+      return result;
+    }, {} as any);
+  }
+  return obj;
+};
+
+export const hash = (str: string) => {
+  return sha256(str);
+};

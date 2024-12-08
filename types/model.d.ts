@@ -1,9 +1,12 @@
+
+import type { ItemClass, ItemSubClass, MainCategory, SubCategoryMap, InstanceMap } from "@/constants/categories";
+import { ProvideStatus } from "@/constants/schema";
+
 /**
  * The ImageInfo interface defines the structure for image information.
  * @param title The title of the image.
  * @param updateAt The date of the last update.
- * @param hyped The number of hyped.
- * @param taggedItem Optional array of tagged items.
+ * @param items Optional array of tagged items.
  * @param tags Optional record of tags related to the image, with string keys and values.
  * @param description Optional description of the image.
  * @param extractedColors Optional array of extracted colors.
@@ -14,17 +17,17 @@ export interface ImageInfo {
    */
   title: string;
   /**
-   * @example "2024-03-01"
+   * @example "Runway"
    */
-  updateAt: Date;
+  subtitle?: string;
   /**
-   * @example 100
+   * @example "Description for the image"
    */
-  hyped: number;
+  description?: string;
   /**
    * @example "https://example.com/image.jpg"
    */
-  mainImageUrl?: string;
+  mainImageUrl: string;
   /**
    * @example ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
    */
@@ -36,66 +39,24 @@ export interface ImageInfo {
   /**
    * @example TaggedItem { "id": "123", "pos": { "top": "100px", "left": "100px" } }
    */
-  taggedItem?: TaggedItem[] | HoverItem[];
-  /**
-   * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
-   */
-  tags?: Record<string, string[]>;
-  /**
-   * @example "Description for the image"
-   */
-  description?: string;
+  items?: TaggedItem[] | HoverItem[];
   /**
    * @example { "background": ["#FFFFFF", "#000000"], "style": ["#FFFFFF", "#000000"] }
    */
-  colorInfo?: ColorInfo;
+  colorInfo?: string[];
   /**
    * @example "Source url"
    */
   source?: string;
+  /**
+   * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
+   */
+  tags?: Record<string, string[]>;
 }
 
-export interface ImageInfoV2 {
-  /**
-   * @example ["en" -> "New York Fashion Week 2024", "ko" -> "뉴욕 패션 위크 2024"]
-   */
-  title: Record<string, string>;
-  /**
-   * @example "2024-03-01"
-   */
-  updateAt: Date;
-  /**
-   * @example "https://example.com/image.jpg"
-   */
-  mainImageUrl?: string;
-  /**
-   * @example ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
-   */
-  subImageUrls?: string[];
-  /**
-   * @example "grunge", "minimalist",
-   */
-  style?: string;
-  /**
-   * @example { "top" -> TaggedItem {..}, "bottom" -> TaggedItem {..} }
-   */
-  taggedSection?: Record<string, TaggedItem>;
-  /**
-   * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
-   */
-  tags?: Record<string, string[]>;
-  /**
-   * @example "Description for the image"
-   */
-  description?: string;
-  /**
-   * @example { "background": ["#FFFFFF", "#000000"], "style": ["#FFFFFF", "#000000"] }
-   */
-  colorInfo?: ColorInfo;
-  /**
-   * @example "Source url"
-   */
-  source?: string;
+export interface SnsInfo {
+  platform: string;
+  url: string;
 }
 
 /**
@@ -110,13 +71,17 @@ export interface ImageInfoV2 {
 export interface ArtistInfo {
   /**
    * Rule: Name should be in English.
-   * @example "Jennie"
+   * @example {"en": "Jennie", "kr": "제니"}
    */
-  name: string;
+  name: Record<string, string>;
   /**
    * @example "photographer"
    */
-  category: string[];
+  category: string;
+  /**
+   * @example "kr"
+   */
+  nationality?: string;
   /**
    * @example "https://example.com/image.jpg"
    */
@@ -124,15 +89,15 @@ export interface ArtistInfo {
   /**
    * @example ["Jenni", "JenDeuk", "제니"]
    */
-  also_known_as?: string[];
+  aka?: string[];
   /**
-   * @example "Black Pink"
+   * @example {"en": "Black Pink", "kr": "블랙핑크"}
    */
-  group?: string;
+  group?: Record<string, string>;
   /**
    * @example { "instagram": "https://www.instagram.com/jennie/", "twitter": "https://twitter.com/jennie" }
    */
-  sns?: Record<string, string>;
+  snsInfo?: SnsInfo[];
   /**
    * @example { "brands": [${doc_id}], "images": ["${doc_id}"] }
    */
@@ -239,10 +204,6 @@ export interface ItemInfo {
    * @example "https://example.com/"
    */
   runway_url?: string;
-
-  /**
-   */
-  hyped: number;
   /**
    * @example "Demna Gvasalia"
    */
@@ -270,12 +231,11 @@ export interface ItemInfo {
 }
 
 export interface BrandInfo {
-  name: string;
-  category: string;
-  creativeDirector?: string[];
+  name: Record<string, string>;
+  cd?: Record<string, string>[];
   websiteUrl?: string;
   logoImageUrl?: string;
-  sns?: Record<string, string>;
+  snsInfo?: SnsInfo[];
   tags?: Record<string, string[]>;
 }
 
@@ -325,7 +285,7 @@ interface HoverItemInfo {
   /**
    * @example Type would be `File` if it is new
    */
-  hoverItemImg?: File;
+  hoverItemImg?: File | string;
 }
 
 interface ColorInfo {
@@ -380,4 +340,175 @@ interface DetailPageState {
    * Extracted color info from image
    */
   colorInfo?: ColorInfo;
+}
+
+interface ImageDetail {
+  title: string;
+  description: string;
+  requestedItems: RequestedItem[];
+}
+
+interface RequestedItem {
+  itemClass: string;
+  itemSubClass: string;
+  category: string;
+  position: Position;
+}
+
+interface RequestImage {
+  title: string;
+  requestedItems: Record<string, RequestedItem[]>;
+  requestBy: string;
+  imageFile: string;
+  metadata: Record<string, string>;
+}
+
+enum SnsType {
+  Instagram = "instagram",
+  Youtube = "youtube",
+}
+
+interface Point {
+  x: number;
+  y: number;
+  itemClass?: ItemClass;
+  itemSubClass?: ItemSubClass;
+  category?: string;
+}
+
+interface SaleInfo {
+  url: string;
+  price: string;
+  currency: string;
+  isAffiliated: boolean;
+  isSoldout: boolean;
+}
+
+interface ItemDetail<T> {
+  provideInfo: ProvideInfo<T>;
+  requester: string;
+  requestedAt: string;
+}
+
+interface ItemDocument {
+  Id: string;
+  name: ItemDetail<string>;
+  brand: ItemDetail<string>;
+  designedBy: ItemDetail<string>;
+  saleInfo: ItemDetail<SaleInfo[]>;
+  imageUrl: string;
+  itemClass: string;
+  itemSubClass: string;
+  category: string;
+  subCategory: ItemDetail<string>;
+  productType: ItemDetail<string>;
+  material: ItemDetail<string>;
+  like: number;
+  description: string;
+  createdAt: string;
+}
+
+interface ItemDocumentWithBrandInfo {
+  item: ItemDocument;
+  brandName: string;
+  brandLogoImageUrl: string;
+}
+
+interface Item {
+  category: string;
+  isDecoded: boolean;
+  item: ItemDocumentWithBrandInfo;
+  position: {
+    top: string;
+    left: string;
+  };
+}
+
+interface ImageDocument {
+  docId: string;
+  decodedNum: Number;
+  description: string;
+  imgUrl: string;
+  items: Record<string, Item[]>;
+  like: Number;
+  source?: string;
+  style: string[];
+  title: string;
+  uploadBy: string;
+}
+
+interface ArtistDocument {
+  id: string;
+  name: Record<string, string>;
+  category: string;
+  profileImageUrl: string;
+}
+
+interface ItemCategory<M extends MainCategory = MainCategory> {
+  main: M;
+  sub: SubCategoryMap<M>;
+  instance: InstanceMap<M, SubCategoryMap<M>>;
+}
+
+interface ProvideData {
+  docId?: string;
+  name?: string;
+  brand?: string;
+  saleUrl?: string;
+  subCategory?: string;
+  productType?: string;
+  material?: string;
+  designedBy?: string;
+}
+
+interface BrandData {
+  en: string;
+  ko: string;
+  docId: string;
+  logoImageUrl: string;
+}
+
+interface ProvideInfo<T> {
+  who: string;
+  value: T;
+  provideStatus: ProvideStatus;
+}
+
+interface ProvideItemInfoWithMetadata {
+  itemDocId: string;
+  isImage: boolean;
+  brandName: string;
+  provideItemInfo: ProvideItemInfo;
+}
+
+interface FinalizeItemRequest {
+  itemDocId: string;
+  base64Image?: string;
+  resetFields?: string[];
+  finalizeFields: string[];
+  saleInfoUrls?: string[];
+  resetSaleInfoUrls?: string[];
+}
+
+interface ProvideItemInfo {
+  name?: ProvideInfo<string>;
+  brand?: ProvideInfo<string>;
+  subCategory?: ProvideInfo<string>;
+  productType?: ProvideInfo<string>;
+  saleInfo?: ProvideInfo<string>[];
+  material?: ProvideInfo<string>;
+  designedBy?: ProvideInfo<string>;
+}
+
+interface ProvidedItemDetail {
+  itemDocId: string;
+  position: Position;
+  provideItemInfo: ProvideItemInfo;
+}
+
+interface ItemRequest {
+  imageDocId: string | null;
+  imageUrl: string | null;
+  isRequested: boolean;
+  items: ProvidedItemDetail[] | null;
 }
