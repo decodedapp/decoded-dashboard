@@ -122,33 +122,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
     setNewMarkers((prev) => [...prev, { x, y }]);
   };
 
-  const handleMarkerUpdate = (
-    idx: number,
-    type: "itemClass" | "itemSubClass" | "category",
-    itemClass?: ItemClass,
-    itemSubClass?: ItemSubClass,
-    category?: string
-  ) => {
-    const updatedMarkers = [...newMarkers];
-    if (type === "itemClass") {
-      updatedMarkers[idx] = {
-        ...updatedMarkers[idx],
-        itemClass,
-      };
-    } else if (type === "itemSubClass") {
-      updatedMarkers[idx] = {
-        ...updatedMarkers[idx],
-        itemSubClass,
-      };
-    } else {
-      updatedMarkers[idx] = {
-        ...updatedMarkers[idx],
-        category,
-      };
-    }
-    setNewMarkers(updatedMarkers);
-  };
-
   const handleAdd = async (points: ExtendedPoint[]) => {
     console.log("Adding new items:", points);
     const items: Record<string, RequestedItem[]> = {};
@@ -158,9 +131,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
           items[point.artistId] = [];
         }
         items[point.artistId].push({
-          itemClass: point.itemClass!,
-          itemSubClass: point.itemSubClass!,
-          category: point.category!,
           position: {
             top: point.y.toString(),
             left: point.x.toString(),
@@ -242,7 +212,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
           <SelectedMarkersArea
             newMarkers={newMarkers}
             newCeleb={newCeleb}
-            handleMarkerUpdate={handleMarkerUpdate}
             handleArtistSelect={handleArtistSelect}
             setNewMarkers={setNewMarkers}
             setNewCeleb={setNewCeleb}
@@ -392,7 +361,6 @@ const Caution = () => {
 const SelectedMarkersArea = ({
   newMarkers,
   newCeleb,
-  handleMarkerUpdate,
   handleArtistSelect,
   setNewMarkers,
   setNewCeleb,
@@ -408,13 +376,6 @@ const SelectedMarkersArea = ({
     category: string;
     requestBy: string;
   };
-  handleMarkerUpdate: (
-    idx: number,
-    type: "itemClass" | "itemSubClass" | "category",
-    itemClass?: ItemClass,
-    itemSubClass?: ItemSubClass,
-    category?: string
-  ) => void;
   handleArtistSelect: (markerId: number, artistId: string) => void;
   setNewMarkers: React.Dispatch<React.SetStateAction<Point[]>>;
   setNewCeleb: React.Dispatch<
@@ -466,7 +427,7 @@ const SelectedMarkersArea = ({
         >
           {/* Category Select Section  */}
           <div className="flex items-center justify-between mb-4">
-            {/* 삭제 버튼 - 우측 상단에 절대 위치로 배치 */}
+            {/* Delete Button  */}
             <button
               onClick={() =>
                 setNewMarkers((prev) => prev.filter((_, i) => i !== idx))
@@ -490,105 +451,10 @@ const SelectedMarkersArea = ({
                 />
               </svg>
             </button>
-            <div className="flex items-center space-x-4 flex-1">
-              <div className="flex-1 grid grid-cols-2 gap-3">
-                {/* ItemClass 선택 */}
-                <div>
-                  <label className="text-xs text-gray-500">아이템 종류</label>
-                  <div className="grid grid-cols-2 gap-1 mt-1">
-                    {Object.keys(subClassesByClass).map((itemClass) => (
-                      <button
-                        key={itemClass}
-                        onClick={() =>
-                          handleMarkerUpdate(
-                            idx,
-                            "itemClass",
-                            itemClass as ItemClass,
-                            undefined,
-                            undefined
-                          )
-                        }
-                        className={`px-2 py-1 text-xs rounded ${
-                          marker.itemClass === itemClass
-                            ? "bg-black text-white"
-                            : "bg-gray-100 hover:bg-gray-200 text-black"
-                        }`}
-                      >
-                        {itemClass}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Category 선택 */}
-                {marker.itemClass && (
-                  <div>
-                    <label className="text-xs text-gray-500">카테고리</label>
-                    <div className="grid grid-cols-2 gap-1 mt-1">
-                      {subClassesByClass[marker.itemClass as ItemClass].map(
-                        (subClass) => (
-                          <button
-                            key={subClass}
-                            onClick={() =>
-                              handleMarkerUpdate(
-                                idx,
-                                "itemSubClass",
-                                undefined,
-                                subClass as ItemSubClass,
-                                undefined
-                              )
-                            }
-                            className={`px-2 py-1 text-xs rounded ${
-                              marker.itemSubClass === subClass
-                                ? "bg-black text-white"
-                                : "bg-gray-100 hover:bg-gray-200 text-black"
-                            }`}
-                          >
-                            {subClass}
-                          </button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Category 선택 */}
-                {marker.itemSubClass && (
-                  <div>
-                    <label className="text-xs text-gray-500">카테고리</label>
-                    <div className="grid grid-cols-2 gap-1 mt-1">
-                      {categoriesBySubClass[
-                        marker.itemSubClass as ItemSubClass
-                      ].map((category) => (
-                        <button
-                          key={category}
-                          onClick={() =>
-                            handleMarkerUpdate(
-                              idx,
-                              "category",
-                              undefined,
-                              undefined,
-                              category as string
-                            )
-                          }
-                          className={`px-2 py-1 text-xs rounded ${
-                            marker.category === category
-                              ? "bg-black text-white"
-                              : "bg-gray-100 hover:bg-gray-200 text-black"
-                          }`}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
           {/* 아티스트 선택 */}
-          <div className="border-t pt-4">
+          <div className="pt-4">
             <div className="mb-2">
               <label className="text-sm text-gray-500">아티스트 선택</label>
               <input
@@ -760,12 +626,7 @@ const RequestButton = ({
 }) => {
   const isFilled = () => {
     for (const marker of newMarkers) {
-      if (
-        !marker.itemClass ||
-        !marker.itemSubClass ||
-        !marker.category ||
-        !marker.artistId
-      ) {
+      if (!marker.artistId) {
         return false;
       }
     }

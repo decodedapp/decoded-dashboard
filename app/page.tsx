@@ -21,6 +21,8 @@ import {
   ProvidedItemDetail,
   ProvideItemInfoWithMetadata,
   FinalizeItemRequest,
+  AdditionalProvideFields,
+  HasFields,
 } from "@/types/model";
 import {
   ItemClass,
@@ -274,7 +276,7 @@ const RequestProvideSection = () => {
 
 const ImageRequestSection = () => {
   const [imageRequests, setImageRequests] = useState<any[]>([]);
-  console.log(imageRequests);
+  console.log("ImageRequests", imageRequests);
   const [isLoading, setIsLoading] = useState(false);
   const [openModalId, setOpenModalId] = useState<string | null>(null);
 
@@ -958,10 +960,7 @@ const RequestSection = () => {
         setIsStepComplete(!!selectedImage);
         break;
       case 3:
-        setIsStepComplete(
-          points.length > 0 &&
-            points.every((point) => point.itemClass && point.category)
-        );
+        setIsStepComplete(points.length > 0);
         break;
       default:
         setIsStepComplete(false);
@@ -984,14 +983,7 @@ const RequestSection = () => {
     const title = `${selectedCeleb.name} 아이템 요청`;
     const items: RequestedItem[] = [];
     for (const point of points) {
-      if (!point.itemClass || !point.itemSubClass || !point.category) {
-        alert("Please select an item class, sub class, and category");
-        return;
-      }
       items.push({
-        itemClass: point.itemClass,
-        itemSubClass: point.itemSubClass,
-        category: point.category,
         position: {
           top: point.y.toString(),
           left: point.x.toString(),
@@ -1551,28 +1543,6 @@ const RequestSection = () => {
       setPoints(points.filter((_, i) => i !== index));
     };
 
-    const updatePointClass = (index: number, itemClass: ItemClass) => {
-      setPoints(
-        points.map((point, i) =>
-          i === index ? { ...point, itemClass, category: undefined } : point
-        )
-      );
-    };
-
-    const updatePointSubClass = (index: number, itemSubClass: ItemSubClass) => {
-      setPoints(
-        points.map((point, i) =>
-          i === index ? { ...point, itemSubClass, category: undefined } : point
-        )
-      );
-    };
-
-    const updatePointCategory = (index: number, category: string) => {
-      setPoints(
-        points.map((point, i) => (i === index ? { ...point, category } : point))
-      );
-    };
-
     return (
       <div className="space-y-8">
         <h2 className="text-3xl font-bold text-center mb-8">
@@ -1583,41 +1553,17 @@ const RequestSection = () => {
           <p className="text-sm">
             이미지를 클릭하여 궁금한 아이템의 위치를 표시해주세요
           </p>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <div className="bg-gray-50 rounded-lg p-4">
             <p className="font-medium text-gray-900">필수 입력사항</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-start space-x-2">
-                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
-                  1
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">아이템 선택</p>
-                  <p className="text-gray-600">
-                    최소 1개 이상의 아이템을 선택해주세요
-                  </p>
-                </div>
+            <div className="mt-2 flex items-start space-x-2">
+              <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                1
               </div>
-              <div className="flex items-start space-x-2">
-                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
-                  2
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">아이템 종류</p>
-                  <p className="text-gray-600">
-                    Fashion, Furniture, Art 중 선택
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-2">
-                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
-                  3
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">상세 카테고리</p>
-                  <p className="text-gray-600">
-                    선택한 종류에 따른 세부 카테고리 선택
-                  </p>
-                </div>
+              <div>
+                <p className="font-medium text-gray-900">아이템 선택</p>
+                <p className="text-gray-600 text-sm">
+                  최소 1개 이상의 아이템을 선택해주세요
+                </p>
               </div>
             </div>
           </div>
@@ -1626,9 +1572,9 @@ const RequestSection = () => {
             <ul className="mt-1 text-xs space-y-1 list-disc list-inside">
               <li>최소 1개 이상의 아이템을 선택해야 합니다</li>
               <li>
-                모든 선택한 아이템에 대해 종류와 카테고리를 지정해야 합니다
+                선택한 위치를 삭제하려면 마커에 마우스를 올린 후 X 버튼을
+                클릭하세요
               </li>
-              <li>위 조건이 모두 충족되어야 다음 단계로 진행할 수 있습니다</li>
             </ul>
           </div>
         </div>
@@ -1654,17 +1600,8 @@ const RequestSection = () => {
                   style={{ left: `${point.x}%`, top: `${point.y}%` }}
                 >
                   <div className="relative">
-                    <div className="absolute w-6 h-6 animate-ping rounded-full bg-yellow-400 opacity-75"></div>
-                    <div
-                      className={`
-                      relative w-6 h-6 rounded-full flex items-center justify-center
-                      ${
-                        point.itemClass && point.category
-                          ? "bg-green-400"
-                          : "bg-yellow-400"
-                      }
-                    `}
-                    >
+                    <div className="absolute w-6 h-6 animate-ping rounded-full bg-blue-400 opacity-75"></div>
+                    <div className="relative w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
                       <span className="text-xs text-white font-bold">
                         {index + 1}
                       </span>
@@ -1690,121 +1627,38 @@ const RequestSection = () => {
           {points.length > 0 && (
             <div className="mt-6 space-y-4">
               <h3 className="font-medium text-gray-900">선택한 아이템</h3>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {points.map((point, index) => (
                   <div
                     key={index}
-                    className="p-4 bg-gray-50 rounded-lg space-y-3"
+                    className="p-3 bg-gray-50 rounded-lg flex items-center justify-between"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`
-                          w-5 h-5 rounded-full flex items-center justify-center
-                          ${
-                            point.itemClass && point.category
-                              ? "bg-green-400"
-                              : "bg-yellow-400"
-                          }
-                        `}
-                        >
-                          <span className="text-xs text-white font-bold">
-                            {index + 1}
-                          </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span className="text-xs text-white font-bold">
+                          {index + 1}
                         </span>
-                        <span className="text-gray-600">
-                          아이템 {index + 1}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => removePoint(index)}
-                        className="text-gray-400 hover:text-red-500"
+                      </span>
+                      <span className="text-gray-600">아이템 {index + 1}</span>
+                    </div>
+                    <button
+                      onClick={() => removePoint(index)}
+                      className="text-gray-400 hover:text-red-500 p-1"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Class Selection */}
-                    <div className="flex gap-2">
-                      {(["fashion", "furniture", "art"] as ItemClass[]).map(
-                        (itemClass) => (
-                          <button
-                            key={itemClass}
-                            onClick={() => updatePointClass(index, itemClass)}
-                            className={`
-                            px-3 py-1.5 rounded-full text-sm
-                            ${
-                              point.itemClass === itemClass
-                                ? "bg-black text-white"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }
-                          `}
-                          >
-                            {itemClass}
-                          </button>
-                        )
-                      )}
-                    </div>
-
-                    {/* Sub Class Selection */}
-                    {point.itemClass && (
-                      <div className="flex gap-2 flex-wrap">
-                        {subClassesByClass[point.itemClass].map((subClass) => (
-                          <button
-                            key={subClass}
-                            onClick={() => updatePointSubClass(index, subClass)}
-                            className={`
-                              px-3 py-1.5 rounded-full text-sm
-                              ${
-                                point.itemSubClass === subClass
-                                  ? "bg-yellow-400 text-white"
-                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              }
-                            `}
-                          >
-                            {subClass}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Category Selection */}
-                    {point.itemSubClass && (
-                      <div className="flex gap-2 flex-wrap">
-                        {categoriesBySubClass[point.itemSubClass].map(
-                          (category) => (
-                            <button
-                              key={category}
-                              onClick={() =>
-                                updatePointCategory(index, category)
-                              }
-                              className={`
-                              px-3 py-1.5 rounded-full text-sm
-                              ${
-                                point.category === category
-                                  ? "bg-green-400 text-white"
-                                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              }
-                            `}
-                            >
-                              {category}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    )}
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -2732,7 +2586,9 @@ const FinalizeSection = () => {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [finalizeItemRequest, setFinalizeItemRequest] =
     useState<FinalizeItemRequest | null>(null);
-  console.log(finalizeItemRequest);
+  const [hasFields, setHasFields] = useState<HasFields>({});
+  console.log("Finalize Section", hasFields);
+  console.log("Finalize Section", finalizeItemRequest);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
 
@@ -2846,6 +2702,17 @@ const FinalizeSection = () => {
         return convertKeysToCamelCase(item);
       });
       setItems(convertedData);
+      setHasFields({
+        hasImage: convertedData.some((item: any) => item.hasFields.hasImage),
+        hasName: convertedData.some((item: any) => item.hasFields.hasName),
+        hasMaterial: convertedData.some(
+          (item: any) => item.hasFields.hasMaterial
+        ),
+        hasDesignedBy: convertedData.some(
+          (item: any) => item.hasFields.hasDesignedBy
+        ),
+        hasColor: convertedData.some((item: any) => item.hasFields.hasColor),
+      });
       console.log(convertedData);
     } catch (error) {
       console.error("아이템 정보를 불러오는데 실패했습니다:", error);
@@ -2873,7 +2740,7 @@ const FinalizeSection = () => {
       fields.push(snakeCaseField);
     }
     converted.finalize_fields = fields;
-    console.log(converted);
+    console.log("Finalize Section", converted);
     try {
       await networkManager.request("finalize/item", "POST", converted);
       alert("선택된 아이템이 확정되었습니다.");
@@ -2967,7 +2834,7 @@ const FinalizeSection = () => {
             >
               <div className="p-6 space-y-4">
                 <div className="relative w-full aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  {!item.isImage && (
+                  {!hasFields.hasImage && (
                     <label
                       htmlFor={`image-upload-${item.itemDocId}`}
                       className="inset-0 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
@@ -3006,66 +2873,6 @@ const FinalizeSection = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  {item.provideItemInfo.name?.value && (
-                    <div className="flex items-center text-sm">
-                      <span className="w-20 text-gray-500">아이템명</span>
-                      <span className="text-gray-900 flex-1">
-                        {item.provideItemInfo.name.value}
-                      </span>
-                      <div className="flex gap-2 ml-2">
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(item.itemDocId, "name", "finalize")
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.finalizeFields?.includes(
-                              "name"
-                            )
-                              ? "bg-green-100 text-green-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(item.itemDocId, "name", "reset")
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.resetFields?.includes("name")
-                              ? "bg-red-100 text-red-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )}
                   {item.provideItemInfo.brand?.value && (
                     <div className="flex items-center text-sm">
                       <span className="w-20 text-gray-500">브랜드</span>
@@ -3109,148 +2916,6 @@ const FinalizeSection = () => {
                           }
                           className={`p-1.5 rounded-full transition-colors ${
                             finalizeItemRequest?.resetFields?.includes("brand")
-                              ? "bg-red-100 text-red-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* subCategory와 productType도 동일한 방식으로 수정 */}
-                  {item.provideItemInfo.subCategory?.value && (
-                    <div className="flex items-center text-sm">
-                      <span className="w-20 text-gray-500">카테고리</span>
-                      <span className="text-gray-900 flex-1">
-                        {item.provideItemInfo.subCategory.value}
-                      </span>
-                      <div className="flex gap-2 ml-2">
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(
-                              item.itemDocId,
-                              "subCategory",
-                              "finalize"
-                            )
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.finalizeFields?.includes(
-                              "subCategory"
-                            )
-                              ? "bg-green-100 text-green-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(
-                              item.itemDocId,
-                              "subCategory",
-                              "reset"
-                            )
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.resetFields?.includes(
-                              "subCategory"
-                            )
-                              ? "bg-red-100 text-red-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {item.provideItemInfo.productType?.value && (
-                    <div className="flex items-center text-sm">
-                      <span className="w-20 text-gray-500">상품 종류</span>
-                      <span className="text-gray-900 flex-1">
-                        {item.provideItemInfo.productType.value}
-                      </span>
-                      <div className="flex gap-2 ml-2">
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(
-                              item.itemDocId,
-                              "productType",
-                              "finalize"
-                            )
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.finalizeFields?.includes(
-                              "productType"
-                            )
-                              ? "bg-green-100 text-green-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(
-                              item.itemDocId,
-                              "productType",
-                              "reset"
-                            )
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.resetFields?.includes(
-                              "productType"
-                            )
                               ? "bg-red-100 text-red-600"
                               : "hover:bg-gray-100 text-gray-400"
                           }`}
@@ -3360,6 +3025,26 @@ const FinalizeSection = () => {
                       </div>
                     )}
                 </div>
+                <AdditionalFieldsForm
+                  hasFields={hasFields}
+                  onUpdate={(fields) => {
+                    setFinalizeItemRequest((prev) => {
+                      if (prev) {
+                        return {
+                          ...prev,
+                          additionalProvideFields: fields,
+                        };
+                      } else {
+                        return {
+                          itemDocId: item.itemDocId,
+                          finalizeFields: [],
+                          additionalProvideFields: fields,
+                        };
+                      }
+                    });
+                    console.log("Additional Fields", finalizeItemRequest);
+                  }}
+                />
                 <div className="flex justify-end">
                   <button
                     onClick={handleFinalize}
@@ -3390,6 +3075,74 @@ const FinalizeSection = () => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+const AdditionalFieldsForm = ({
+  hasFields,
+  onUpdate,
+}: {
+  hasFields: HasFields;
+  onUpdate: (fields: AdditionalProvideFields) => void;
+}) => {
+  const [fields, setFields] = useState<AdditionalProvideFields>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const updatedFields = { ...fields, [name]: value };
+    if (value === "") {
+      delete updatedFields[name as keyof AdditionalProvideFields];
+    }
+    setFields(updatedFields);
+    onUpdate(updatedFields);
+  };
+
+  return (
+    <div className="p-4 bg-gray-100 rounded-lg">
+      <h3 className="text-lg font-bold mb-2">추가 정보 입력</h3>
+      <div className="space-y-2">
+        {!hasFields.hasName && (
+          <input
+            type="text"
+            name="name"
+            placeholder="아이템 이름"
+            value={fields.name || ""}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          />
+        )}
+        {!hasFields.hasMaterial && (
+          <input
+            type="text"
+            name="material"
+            placeholder="소재"
+            value={fields.material || ""}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          />
+        )}
+        {!hasFields.hasDesignedBy && (
+          <input
+            type="text"
+            name="designedBy"
+            placeholder="디자이너"
+            value={fields.designedBy || ""}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          />
+        )}
+        {!hasFields.hasColor && (
+          <input
+            type="text"
+            name="color"
+            placeholder="색상"
+            value={fields.color || ""}
+            onChange={handleChange}
+            className="w-full p-2 border rounded"
+          />
+        )}
+      </div>
     </div>
   );
 };

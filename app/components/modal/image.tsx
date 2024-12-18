@@ -1,16 +1,7 @@
 import Image from "next/image";
-import { useState, useRef } from "react";
-import { RequestedItem } from "@/types/model";
-import {
-  ItemClass,
-  ItemSubClass,
-  subClassesByClass,
-  categoriesBySubClass,
-  styleOptions,
-} from "@/constants/categories";
+import { useState, useEffect } from "react";
+import { RequestedItem, CategoryDoc, Category } from "@/types/model";
 import { networkManager } from "@/network/network";
-
-type FashionStyle = (typeof styleOptions)[number];
 
 export const ImagePreviewModal = ({
   isOpen,
@@ -39,495 +30,339 @@ export const ImagePreviewModal = ({
     artist: string;
   }) => void;
 }) => {
-  const imageRef = useRef<HTMLDivElement>(null);
-  const [artists, setArtists] = useState<Array<{ id: string; name: string }>>(
-    []
-  );
-  const [selectedArtist, setSelectedArtist] = useState({
-    id: request.artist.id,
-    name: request.artist.name,
-  });
-  const [selectedStyle, setSelectedStyle] = useState(request.style);
-  const [editMode, setEditMode] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(request.title);
-  const [editedDescription, setEditedDescription] = useState(
-    request.description
-  );
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [categories, setCategories] = useState<CategoryDoc[]>([]);
+  const [innerCategories, setInnerCategories] = useState<
+    Record<number, Category[]>
+  >({});
   const [editedRequestedItems, setEditedRequestedItems] = useState(
     request.requestedItems
   );
-  const [selectedMarker, setSelectedMarker] = useState<{
-    key: string;
-    index: number;
-  } | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<
-    "left" | "right" | "top" | "bottom"
-  >("right");
+  console.log("editedRequestedItems", editedRequestedItems);
+  const [selectedPath, setSelectedPath] = useState<Record<number, string[]>>(
+    {}
+  );
+  console.log("selectedPath", selectedPath);
 
-  const fetchArtists = async () => {
-    try {
-      const res = await networkManager.request("artists", "GET", null);
-      const formattedArtists = res.data.artists.map((celeb: any) => ({
-        name: celeb.name.ko,
-        id: celeb._id,
-      }));
-      setArtists(formattedArtists);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handleDragStart = (e: React.MouseEvent, key: string, index: number) => {
+    setIsDragging(true);
 
-  const handleEditClick = async () => {
-    await fetchArtists();
-    setEditMode(true);
-  };
+    const handleDrag = (e: MouseEvent) => {
+      const imageElement = document.querySelector(
+        ".relative.aspect-\\[3\\/4\\] img"
+      );
+      if (!imageElement) return;
 
-  // 마커 클릭 시 팝오버 위치 계산
-  const handleMarkerClick = (
-    key: string,
-    index: number,
-    e: React.MouseEvent
-  ) => {
-    if (!editMode || !imageRef.current) return;
+      const rect = imageElement.getBoundingClientRect();
+      const left = ((e.clientX - rect.left) / rect.width) * 100;
+      const top = ((e.clientY - rect.top) / rect.height) * 100;
 
-    const rect = imageRef.current.getBoundingClientRect();
-    const markerX = e.clientX - rect.left;
-    const markerY = e.clientY - rect.top;
+      const updatedItems = { ...editedRequestedItems };
+      updatedItems[key][index] = {
+        ...updatedItems[key][index],
+        position: { left: left.toString(), top: top.toString() },
+      };
+      setEditedRequestedItems(updatedItems);
+    };
 
-    // 이미지의 오른쪽 절반에 있으면 왼쪽으로 팝오버
-    if (markerX > rect.width / 2) {
-      setPopoverPosition("left");
-    } else {
-      setPopoverPosition("right");
-    }
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener("mousemove", handleDrag);
+      document.removeEventListener("mouseup", handleDragEnd);
+    };
 
-    setSelectedMarker({ key, index });
+    document.addEventListener("mousemove", handleDrag);
+    document.addEventListener("mouseup", handleDragEnd);
   };
 
   const handleItemUpdate = (
-    itemKey: string,
+    key: string,
     index: number,
     updates: Partial<RequestedItem>
   ) => {
-    setEditedRequestedItems((prev) => {
-      const newItems = { ...prev };
-      const itemArray = [...newItems[itemKey]];
-      itemArray[index] = { ...itemArray[index], ...updates };
-      newItems[itemKey] = itemArray;
-      return newItems;
-    });
-  };
-
-  const handleMarkerDrag = (
-    itemKey: string,
-    index: number,
-    e: React.MouseEvent
-  ) => {
-    if (!imageRef.current || !editMode) return;
-
-    const rect = imageRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setEditedRequestedItems((prev) => {
-      const newItems = { ...prev };
-      const itemArray = [...newItems[itemKey]];
-      itemArray[index] = {
-        ...itemArray[index],
-        position: {
-          left: Math.min(100, Math.max(0, x)).toString(),
-          top: Math.min(100, Math.max(0, y)).toString(),
-        },
-      };
-      newItems[itemKey] = itemArray;
-      return newItems;
-    });
-  };
-
-  const handleSave = () => {
-    setEditMode(false);
-    const updatedRequestedItems: Record<string, RequestedItem[]> = {
-      [selectedArtist.id]: Object.values(editedRequestedItems).flat(),
+    const updatedItems = { ...editedRequestedItems };
+    updatedItems[key][index] = {
+      ...updatedItems[key][index],
+      ...updates,
     };
+    setEditedRequestedItems(updatedItems);
     onUpdate({
-      title: editedTitle,
-      description: editedDescription,
-      style: selectedStyle,
-      requestedItems: updatedRequestedItems,
-      artist: selectedArtist.name,
+      ...request,
+      requestedItems: updatedItems,
+      artist: request.artist.id,
     });
   };
 
-  if (!isOpen) return null;
+  const handleItemClassSelect = (
+    key: string,
+    index: number,
+    itemClass: string
+  ) => {
+    setSelectedPath({
+      ...selectedPath,
+      [index]: [itemClass],
+    });
+    const updatedItems = { ...editedRequestedItems };
+    updatedItems[key][index] = {
+      ...updatedItems[key][index],
+      itemClass,
+    };
+    setEditedRequestedItems(updatedItems);
+    updateInnerCategories(index, itemClass);
+  };
+
+  const handleItemSubClassSelect = (
+    key: string,
+    index: number,
+    itemSubClass: string
+  ) => {
+    setSelectedPath({
+      ...selectedPath,
+      [index]: [...(selectedPath[index]?.slice(0, 1) || []), itemSubClass],
+    });
+    const updatedItems = { ...editedRequestedItems };
+    updatedItems[key][index] = {
+      ...updatedItems[key][index],
+      itemSubClass,
+    };
+    setEditedRequestedItems(updatedItems);
+  };
+
+  const handleInnerCategorySelect = (
+    key: string,
+    index: number,
+    value: string,
+    path: string[]
+  ) => {
+    const updatedItems = { ...editedRequestedItems };
+    const categoryPath = path.slice(2);
+
+    switch (categoryPath.length) {
+      case 1:
+        updatedItems[key][index] = {
+          ...updatedItems[key][index],
+          productType: value,
+        };
+        break;
+
+      case 2:
+        updatedItems[key][index] = {
+          ...updatedItems[key][index],
+          category: categoryPath[0],
+          productType: value,
+        };
+        break;
+
+      case 3:
+        updatedItems[key][index] = {
+          ...updatedItems[key][index],
+          category: categoryPath[0],
+          subCategory: categoryPath[1],
+          productType: value,
+        };
+        break;
+    }
+
+    setEditedRequestedItems(updatedItems);
+  };
+
+  const updateInnerCategories = (index: number, itemClass: string) => {
+    const selectedDoc = categories.find((cat) => cat.item_class === itemClass);
+    setInnerCategories((prev) => ({
+      ...prev,
+      [index]: selectedDoc?.inner || [],
+    }));
+  };
+
+  const getChildCategories = (
+    index: number,
+    depth: number
+  ): Category[] | string[] => {
+    let current: Category | undefined = innerCategories[index]?.find(
+      (cat) => cat.name === selectedPath[index]?.[1]
+    );
+
+    for (let i = 2; i <= depth; i++) {
+      current = (current?.children as Category[])?.find(
+        (cat) => cat.name === selectedPath[index]?.[i]
+      );
+    }
+    if (current?.is_leaf) {
+      return current.instances || [];
+    }
+    return (current?.children as Category[]) || [];
+  };
+
+  const fetchCategories = async () => {
+    const res = await networkManager.request("categories", "GET", null);
+    setCategories(res.data.item_classes);
+  };
+
+  const getInnerCategories = (itemClass: string) => {
+    const selectedDoc = categories.find((cat) => cat.item_class === itemClass);
+    return selectedDoc?.inner || [];
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div
+      className={`fixed inset-0 z-50 overflow-y-auto ${
+        isOpen ? "block" : "hidden"
+      }`}
+    >
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-        <div className="fixed inset-0 transition-opacity" onClick={onClose}>
-          <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-        </div>
-
-        <div className="relative inline-block overflow-hidden transform transition-all sm:align-middle sm:max-w-lg w-full">
-          <div className="bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl">
-            <div className="sm:flex sm:items-start">
-              <div className="w-full">
-                <div className="mt-3 text-center sm:mt-0 sm:text-left">
-                  <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                    {request.title}
-                  </h3>
-
-                  <div className="relative aspect-[3/4] w-full" ref={imageRef}>
-                    <Image
-                      src={request.imgUrl}
-                      alt={request.title}
-                      fill
-                      className="object-cover rounded"
-                    />
-
-                    {editedRequestedItems &&
-                      Object.entries(editedRequestedItems).map(([key, items]) =>
-                        items.map((item: any, index: number) => (
-                          <div
-                            key={`${key}-${index}`}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 group ${
-                              editMode ? "cursor-move" : ""
-                            }`}
-                            style={{
-                              left: `${item.position?.left}%`,
-                              top: `${item.position?.top}%`,
-                            }}
-                            draggable={editMode}
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", "");
-                              e.currentTarget.classList.add("dragging");
-                            }}
-                            onDrag={(e) => {
-                              if (e.clientX && e.clientY) {
-                                handleMarkerDrag(key, index, e);
-                              }
-                            }}
-                          >
-                            <div className="relative">
-                              {/* 외부 링 애니메이션 */}
-                              <div className="absolute -inset-1 bg-white/30 rounded-full blur-sm group-hover:bg-white/40 transition-colors"></div>
-
-                              {/* 메인 마커 */}
-                              <div className="relative flex items-center">
-                                <div
-                                  className="w-4 h-4 bg-black rounded-full flex items-center justify-center ring-2 ring-white shadow-lg group-hover:scale-110 transition-transform"
-                                  onClick={(e) =>
-                                    handleMarkerClick(key, index, e)
-                                  }
-                                >
-                                  <span className="text-[10px] text-white font-bold">
-                                    {index + 1}
-                                  </span>
-                                </div>
-
-                                {editMode &&
-                                  selectedMarker?.key === key &&
-                                  selectedMarker?.index === index && (
-                                    <div
-                                      className={`absolute z-50 ${
-                                        popoverPosition === "left"
-                                          ? "right-full mr-2"
-                                          : "left-full ml-2"
-                                      } bg-white rounded-lg shadow-xl p-2 min-w-[200px]`}
-                                    >
-                                      <div className="space-y-2">
-                                        <div>
-                                          <label className="text-xs text-gray-500">
-                                            아이템 종류
-                                          </label>
-                                          <div className="grid grid-cols-2 gap-1 mt-1">
-                                            {Object.keys(subClassesByClass).map(
-                                              (itemClass) => (
-                                                <button
-                                                  key={itemClass}
-                                                  onClick={() =>
-                                                    handleItemUpdate(
-                                                      key,
-                                                      index,
-                                                      {
-                                                        itemClass:
-                                                          itemClass as ItemClass,
-                                                      }
-                                                    )
-                                                  }
-                                                  className={`px-2 py-1 text-xs rounded ${
-                                                    item.itemClass === itemClass
-                                                      ? "bg-black text-white"
-                                                      : "bg-gray-100 hover:bg-gray-200"
-                                                  }`}
-                                                >
-                                                  {itemClass}
-                                                </button>
-                                              )
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {item.itemClass && (
-                                          <div>
-                                            <label className="text-xs text-gray-500">
-                                              카테고리
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-1 mt-1">
-                                              {subClassesByClass[
-                                                item.itemClass as ItemClass
-                                              ].map((subClass) => (
-                                                <button
-                                                  key={subClass}
-                                                  onClick={() =>
-                                                    handleItemUpdate(
-                                                      key,
-                                                      index,
-                                                      {
-                                                        itemSubClass:
-                                                          subClass as ItemSubClass,
-                                                      }
-                                                    )
-                                                  }
-                                                  className={`px-2 py-1 text-xs rounded ${
-                                                    item.itemSubClass ===
-                                                    subClass
-                                                      ? "bg-black text-white"
-                                                      : "bg-gray-100 hover:bg-gray-200"
-                                                  }`}
-                                                >
-                                                  {subClass}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {item.itemSubClass && (
-                                          <div>
-                                            <label className="text-xs text-gray-500">
-                                              카테고리
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-1 mt-1">
-                                              {categoriesBySubClass[
-                                                item.itemSubClass as ItemSubClass
-                                              ].map((category) => (
-                                                <button
-                                                  key={category}
-                                                  onClick={() =>
-                                                    handleItemUpdate(
-                                                      key,
-                                                      index,
-                                                      {
-                                                        category: category,
-                                                      }
-                                                    )
-                                                  }
-                                                  className={`px-2 py-1 text-xs rounded ${
-                                                    item.category === category
-                                                      ? "bg-black text-white"
-                                                      : "bg-gray-100 hover:bg-gray-200"
-                                                  }`}
-                                                >
-                                                  {category}
-                                                </button>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        <button
-                                          onClick={() =>
-                                            setSelectedMarker(null)
-                                          }
-                                          className="w-full mt-2 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
-                                        >
-                                          닫기
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                  </div>
-
-                  <div className="bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl">
-                    <div className="mb-6 border-b border-gray-200 pb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        {editMode ? (
-                          <div className="w-full space-y-4">
-                            <div>
-                              <label
-                                htmlFor="title"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                              >
-                                제목
-                              </label>
-                              <input
-                                type="text"
-                                id="title"
-                                value={editedTitle}
-                                onChange={(e) => setEditedTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor="description"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                              >
-                                설명
-                              </label>
-                              <textarea
-                                id="description"
-                                value={editedDescription}
-                                onChange={(e) =>
-                                  setEditedDescription(e.target.value)
-                                }
-                                rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor="style"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                              >
-                                패션 스타일
-                              </label>
-                              <select
-                                id="style"
-                                value={selectedStyle}
-                                onChange={(e) =>
-                                  setSelectedStyle(
-                                    e.target.value as FashionStyle
-                                  )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black sm:text-sm"
-                              >
-                                {styleOptions.map((style) => (
-                                  <option key={style} value={style}>
-                                    {style}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor="artist"
-                                className="block text-sm font-medium text-gray-700 mb-1"
-                              >
-                                아티스트
-                              </label>
-                              <select
-                                id="artist"
-                                value={selectedArtist.id}
-                                onChange={(e) => {
-                                  const artist = artists.find(
-                                    (a) => a.id === e.target.value
-                                  );
-                                  if (artist) {
-                                    setSelectedArtist({
-                                      id: artist.id,
-                                      name: artist.name,
-                                    });
-                                  }
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-black focus:border-black sm:text-sm"
-                              >
-                                {artists.map((artist) => (
-                                  <option key={artist.id} value={artist.id}>
-                                    {artist.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                onClick={() => setEditMode(false)}
-                                className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
-                              >
-                                취소
-                              </button>
-                              <button
-                                onClick={handleSave}
-                                className="px-3 py-1.5 bg-black text-white rounded text-sm hover:bg-gray-800"
-                              >
-                                저장
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="w-full">
-                            <div className="flex items-center justify-between mb-2">
-                              <h3 className="text-xl font-semibold text-gray-900">
-                                {request.title}
-                              </h3>
-                              <button
-                                onClick={handleEditClick}
-                                className="text-sm text-gray-600 hover:text-black flex items-center space-x-1"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                  />
-                                </svg>
-                                <span>수정</span>
-                              </button>
-                            </div>
-                            {request.description && (
-                              <p className="text-sm text-gray-600 whitespace-pre-line">
-                                {request.description}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* 아이템 리스트 */}
-                    <div className="mt-4 space-y-2">
-                      {request.requestedItems &&
-                        Object.values(request.requestedItems)
-                          .flat()
-                          .map((item: any, index: number) => (
-                            <div
-                              key={index}
-                              className="flex items-center space-x-2 text-sm text-gray-600"
-                            >
-                              <span className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center text-white font-bold text-xs">
-                                {index + 1}
-                              </span>
-                              <span>
-                                {item.itemClass} - {item.itemSubClass} -
-                                {item.category}
-                              </span>
-                            </div>
-                          ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+        <div className="bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-2xl">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {request.title}
+              </h2>
               <button
-                type="button"
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:mt-0 sm:w-auto sm:text-sm"
                 onClick={onClose}
+                className="text-gray-500 hover:text-gray-700"
               >
                 닫기
               </button>
+            </div>
+
+            {/* Image with markers */}
+            <div className="relative aspect-[3/4] mb-6">
+              <Image
+                src={request.imgUrl}
+                alt={request.title}
+                fill
+                className="object-cover rounded-lg"
+              />
+              {Object.entries(editedRequestedItems).map(([key, items]) =>
+                items.map((item, index) => (
+                  <div
+                    key={`${key}-${index}`}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-move ${
+                      isDragging ? "pointer-events-none" : ""
+                    }`}
+                    style={{
+                      left: `${item.position?.left}%`,
+                      top: `${item.position?.top}%`,
+                    }}
+                    onMouseDown={(e) => handleDragStart(e, key, index)}
+                  >
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center ring-2 ring-white shadow-lg hover:bg-blue-600 transition-colors">
+                      <span className="text-xs text-white font-bold">
+                        {index + 1}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Items List */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900">아이템 정보</h3>
+              {Object.entries(editedRequestedItems).map(([key, items]) =>
+                items.map((item, index) => (
+                  <div
+                    key={`${key}-${index}`}
+                    className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                  >
+                    <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                      <div className="w-8 h-8 bg-blue-500 bg-opacity-10 rounded-lg flex items-center justify-center">
+                        <span className="text-blue-600 font-semibold">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <h4 className="font-medium text-gray-900">
+                        아이템 {index + 1}
+                      </h4>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {/* 아이템 종류 선택 */}
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        value={selectedPath[index]?.[0] ?? ""}
+                        onChange={(e) =>
+                          handleItemClassSelect(key, index, e.target.value)
+                        }
+                      >
+                        <option value="">아이템 클래스 선택</option>
+                        {categories.map((cat) => (
+                          <option key={cat.item_class} value={cat.item_class}>
+                            {cat.item_class}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedPath[index]?.[0] && (
+                      <select
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        value={selectedPath[index]?.[1] ?? ""}
+                        onChange={(e) =>
+                          handleItemSubClassSelect(key, index, e.target.value)
+                        }
+                      >
+                        <option value="">카테고리 선택</option>
+                        {getInnerCategories(selectedPath[index][0]).map(
+                          (category) => (
+                            <option key={category.name} value={category.name}>
+                              {category.name}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    )}
+
+                    {selectedPath[index]?.slice(1).map((_, depth) => {
+                      const children = getChildCategories(index, depth + 1);
+                      if (children.length === 0) return null;
+                      return (
+                        <select
+                          key={depth}
+                          className="w-full p-2 border border-gray-300 rounded-md"
+                          value={selectedPath[index]?.[depth + 2] ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSelectedPath({
+                              ...selectedPath,
+                              [index]: [
+                                ...selectedPath[index]?.slice(0, depth + 2),
+                                value,
+                              ],
+                            });
+
+                            // children이 string[]인 경우 (leaf node)
+                            if (typeof children[0] === "string") {
+                              handleInnerCategorySelect(key, index, value, [
+                                ...selectedPath[index]?.slice(0, depth + 2),
+                                value,
+                              ]);
+                            }
+                          }}
+                        >
+                          <option value="">하위 카테고리 선택</option>
+                          {(children as (string | Category)[]).map((item) => (
+                            <option
+                              key={typeof item === "string" ? item : item.name}
+                              value={
+                                typeof item === "string" ? item : item.name
+                              }
+                            >
+                              {typeof item === "string" ? item : item.name}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

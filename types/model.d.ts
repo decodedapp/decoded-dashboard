@@ -349,9 +349,11 @@ interface ImageDetail {
 }
 
 interface RequestedItem {
-  itemClass: string;
-  itemSubClass: string;
-  category: string;
+  itemClass?: string;
+  itemSubClass?: string;
+  category?: string;
+  subCategory?: string;
+  productType?: string;
   position: Position;
 }
 
@@ -371,9 +373,6 @@ enum SnsType {
 interface Point {
   x: number;
   y: number;
-  itemClass?: ItemClass;
-  itemSubClass?: ItemSubClass;
-  category?: string;
 }
 
 interface SaleInfo {
@@ -481,6 +480,21 @@ interface ProvideItemInfoWithMetadata {
   provideItemInfo: ProvideItemInfo;
 }
 
+interface AdditionalProvideFields {
+  name?: string;
+  material?: string;
+  designedBy?: string;
+  color?: string;
+}
+
+interface HasFields {
+  hasImage?: boolean;
+  hasName?: boolean;
+  hasMaterial?: boolean;
+  hasDesignedBy?: boolean;
+  hasColor?: boolean;
+}
+
 interface FinalizeItemRequest {
   itemDocId: string;
   base64Image?: string;
@@ -488,16 +502,12 @@ interface FinalizeItemRequest {
   finalizeFields: string[];
   saleInfoUrls?: string[];
   resetSaleInfoUrls?: string[];
+  additionalProvideFields?: AdditionalProvideFields;
 }
 
 interface ProvideItemInfo {
-  name?: ProvideInfo<string>;
   brand?: ProvideInfo<string>;
-  subCategory?: ProvideInfo<string>;
-  productType?: ProvideInfo<string>;
   saleInfo?: ProvideInfo<string>[];
-  material?: ProvideInfo<string>;
-  designedBy?: ProvideInfo<string>;
 }
 
 interface ProvidedItemDetail {
@@ -511,4 +521,17 @@ interface ItemRequest {
   imageUrl: string | null;
   isRequested: boolean;
   items: ProvidedItemDetail[] | null;
+}
+
+export interface Category<T = Category> {
+  name: string;
+  children?: T[];
+  is_leaf: boolean;
+  instances?: string[];
+}
+
+export interface CategoryDoc {
+  item_class: string;
+  depth: number;
+  inner?: Category[];
 }

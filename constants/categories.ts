@@ -69,6 +69,22 @@ export type LuggageSubCategory<T extends LuggageCategory> = typeof Luggage[T][nu
 export type SmallBagsCategory = keyof typeof SmallBags;
 export type SmallBagsSubCategory<T extends SmallBagsCategory> = typeof SmallBags[T][number];
 
+// Furniture
+export type ChairCategory = keyof typeof Chair;
+export type ChairSubCategory<T extends ChairCategory> = typeof Chair[T][number];
+export type TableCategory = keyof typeof Table;
+export type TableSubCategory<T extends TableCategory> = typeof Table[T][number];
+export type LightingCategory = keyof typeof Lighting;
+export type LightingSubCategory<T extends LightingCategory> = typeof Lighting[T][number];
+
+// Art
+export type PaintingCategory = keyof typeof Painting;
+export type PaintingSubCategory<T extends PaintingCategory> = typeof Painting[T][number];
+export type SculptureCategory = keyof typeof Sculpture;
+export type SculptureSubCategory<T extends SculptureCategory> = typeof Sculpture[T][number];
+export type PhotographyCategory = keyof typeof Photography;
+export type PhotographySubCategory<T extends PhotographyCategory> = typeof Photography[T][number];
+
 export type ItemClass = "fashion" | "furniture" | "art";
 export type ItemSubClass = 
   | "clothing" 
@@ -86,44 +102,18 @@ export type ClothingCategories = "top" | "bottom" | "outer" | "one-piece" | "und
 export type AccessoriesCategories = "bags" | "jewelry" | "belts" | "hats" | "glasses";
 export type SneakersCategories = "sneakers" | "boots" | "flat-shoes" | "sandals" | "formal-shoes" | "heels";
 export type BagsCategories = "backpacks" | "shoulder-bags" | "handbags" | "business-bags" | "luggage" | "small-bags";
+export type FurnitureCategories = "chair" | "table" | "lighting";
+export type ArtCategories = "painting" | "sculpture" | "photography";
 
 // 메인 카테고리 타입
 export type MainCategory =
   // Clothing
-  | "top"
-  | "bottom"
-  | "outerwear"
-  | "onepiece"
-  | "underwear"
-  | "sportswear"
-  | "swimwear"
-  // Accessories
-  | "hats"
-  | "hair-accessories"
-  | "glasses"
-  | "jewelry"
-  | "neckwear"
-  | "belts"
-  | "gloves"
-  | "watches"
-  | "socks"
-  | "small-leather-goods"
-  | "tech-accessories"
-  | "others"
-  // Shoes
-  | "sneakers"
-  | "boots"
-  | "flat-shoes"
-  | "sandals"
-  | "formal-shoes"
-  | "heels"
-  // Bags
-  | "backpacks"
-  | "shoulder-bags"
-  | "handbags"
-  | "business-bags"
-  | "luggage"
-  | "small-bags";
+  ClothingCategories
+  | AccessoriesCategories
+  | SneakersCategories
+  | BagsCategories
+  | FurnitureCategories
+  | ArtCategories;
 
 // 메인 카테고리에 따른 서브카테고리 매핑
 export type SubCategoryMap<M extends MainCategory> = 
@@ -162,6 +152,13 @@ export type SubCategoryMap<M extends MainCategory> =
   M extends "business-bags" ? BusinessBagsCategory :
   M extends "luggage" ? LuggageCategory :
   M extends "small-bags" ? SmallBagsCategory :
+  M extends "chair" ? ChairCategory :
+  M extends "table" ? TableCategory :
+  M extends "lighting" ? LightingCategory :
+  M extends "painting" ? PaintingCategory :
+  M extends "sculpture" ? SculptureCategory :
+  M extends "photography" ? PhotographyCategory :
+
   never;
 
 // 서브카테고리에 따른 인스턴스 매핑
@@ -201,6 +198,13 @@ export type InstanceMap<M extends MainCategory, S extends SubCategoryMap<M>> =
   M extends "business-bags" ? BusinessBagsSubCategory<S & BusinessBagsCategory> :
   M extends "luggage" ? LuggageSubCategory<S & LuggageCategory> :
   M extends "small-bags" ? SmallBagsSubCategory<S & SmallBagsCategory> :
+  M extends "chair" ? ChairSubCategory<S & ChairCategory> :
+  M extends "table" ? TableSubCategory<S & TableCategory> :
+  M extends "lighting" ? LightingSubCategory<S & LightingCategory> :
+  M extends "painting" ? PaintingSubCategory<S & PaintingCategory> :
+  M extends "sculpture" ? SculptureSubCategory<S & SculptureCategory> :
+  M extends "photography" ? PhotographySubCategory<S & PhotographyCategory> :
+
   never;
 
 export const subClassesByClass: Record<ItemClass, ItemSubClass[]> = {
@@ -214,12 +218,12 @@ export const categoriesBySubClass: Record<ItemSubClass, string[]> = {
   accessories: ["bags", "jewelry", "belts", "hats", "glasses"],
   sneakers: ["sneakers", "boots", "flat-shoes", "sandals", "formal-shoes", "heels"],
   bags: ["backpacks", "shoulder-bags", "handbags", "business-bags", "luggage", "small-bags"],
-  chair: ["dining", "office", "lounge"],
-  table: ["dining", "coffee", "side"],
-  lighting: ["ceiling", "table", "floor"],
-  painting: ["abstract", "portrait", "landscape"],
-  sculpture: ["modern", "classical", "contemporary"],
-  photography: ["nature", "portrait", "street"]
+  chair: ["dining", "office", "lounge", "living", "bedroom"],
+  table: ["dining", "coffee", "side", "living", "bedroom"],
+  lighting: ["ceiling", "table", "floor", "living", "bedroom"],
+  painting: ["abstract", "portrait", "landscape", "still-life", "art-movement"],
+  sculpture: ["modern", "classical", "contemporary", "sculpture-movement"],
+  photography: ["nature", "portrait", "street", "art-movement"]
 };
 
 // Clothing
@@ -577,8 +581,7 @@ export const Heels = {
     "platform-heel"
   ]
 } as const;
-  
-// Bags
+
 export const Backpacks = {
   "backpacks": [
     "backpacks"
@@ -625,6 +628,16 @@ export const SmallBags = {
   ]
 } as const;
 
+// Bags
+export const Bags = {
+  "backpacks": Backpacks,
+  "shoulder-bags": ShoulderBags,
+  "handbags": Handbags,
+  "business-bags": BusinessBags,
+  "luggage": Luggage,
+  "small-bags": SmallBags
+} as const;
+
 export const styleOptions = [
   "casual",
   "formal",
@@ -638,6 +651,59 @@ export const styleOptions = [
   "classic",
 ] as const;
 
+export const Chair = {
+  "dining":["dining"],
+  "office":["office"],
+  "lounge":["lounge"],
+  "living":["living"],
+  "bedroom":["bedroom"]
+} as const;
+
+export const Table = {
+  "table": [
+    "dining",
+    "coffee",
+    "side",
+    "living",
+    "bedroom"
+  ]
+} as const;
+
+export const Lighting = {
+  "lighting": [
+    "ceiling",
+    "table",
+    "floor"
+  ]
+} as const;
+
+export const Painting = {
+  "painting": [
+    "abstract",
+    "portrait",
+    "landscape",
+    "still-life",
+    "art-movement"
+  ]
+} as const;
+
+export const Sculpture = {
+  "sculpture": [
+    "modern",
+    "classical",
+    "contemporary"
+  ]
+} as const;
+
+export const Photography = {
+  "photography": [
+    "nature",
+    "portrait",
+    "street",
+    "art-movement"
+  ]
+} as const;
+
 export const categories = {
   "top": Tops,
   "bottom": Bottoms,
@@ -647,6 +713,7 @@ export const categories = {
   "sportswear": Sportswear,
   "swimwear": Swimwear,
   "hats": Hats,
+  "bags": Bags,
   "hair-accessories": HairAccessories,
   "glasses": Eyewear,
   "jewelry": Jewelry,
@@ -670,4 +737,10 @@ export const categories = {
   "business-bags": BusinessBags,
   "luggage": Luggage,
   "small-bags": SmallBags,
+  "chair": Chair,
+  "table": Table,
+  "lighting": Lighting,
+  "painting": Painting,
+  "sculpture": Sculpture,
+  "photography": Photography,
 } as const;

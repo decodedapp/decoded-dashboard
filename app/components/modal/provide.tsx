@@ -5,16 +5,9 @@ import {
   BrandData,
   ItemDetail,
 } from "@/types/model";
-import {
-  MainCategory,
-  SubCategoryMap,
-  InstanceMap,
-  categories,
-} from "@/constants/categories";
 import { networkManager } from "@/network/network";
 import { convertKeysToCamelCase } from "@/utils/util";
 import Image from "next/image";
-import { arrayBufferToBase64 } from "@/utils/util";
 
 interface ProvideModalProps {
   isOpen: boolean;
@@ -37,12 +30,6 @@ export const ProvidePanel = ({
   console.log("Item", item);
   const [provideData, setProvideData] = useState<ProvideData | null>(null);
   console.log("ProvideData", provideData);
-  const category = item.category as MainCategory;
-  const [selectedSub, setSelectedSub] = useState<
-    keyof (typeof categories)[typeof category] | undefined
-  >(undefined);
-  const [selectedInstance, setSelectedInstance] =
-    useState<InstanceMap<typeof category, SubCategoryMap<typeof category>>>();
   const [brandSearch, setBrandSearch] = useState<string>("");
   const [brands, setBrands] = useState<BrandData[]>([]);
   const [isBrandSelected, setIsBrandSelected] = useState<boolean>(false);
@@ -57,22 +44,9 @@ export const ProvidePanel = ({
     }, 2000);
   };
 
-  // 메인 카테고리를 MainCategory 타입으로 변환
-  const subCategories = Object.keys(categories[category]) as SubCategoryMap<
-    typeof category
-  >[];
-  const instances = selectedSub ? categories[category][selectedSub] : [];
   const requiredFields = [
-    { key: "name", label: "상품명" },
     { key: "brand", label: "브랜드" },
-    { key: "saleInfo", label: "판매 정보" },
-    { key: "subCategory", label: "카테고리" },
-    { key: "productType", label: "하위 카테고리" },
-  ] as const;
-
-  const optionalFields = [
-    { key: "designedBy", label: "디자이너" },
-    { key: "material", label: "소재" },
+    { key: "saleUrl", label: "판매 URL" },
   ] as const;
 
   const filteredBrands = brands.filter(
@@ -115,8 +89,6 @@ export const ProvidePanel = ({
   // 모달 닫기 시 상태 초기화
   const handleClose = () => {
     setProvideData(null);
-    setSelectedSub(undefined);
-    setSelectedInstance(undefined);
     setBrandSearch("");
     onClose();
   };
@@ -233,70 +205,6 @@ export const ProvidePanel = ({
         </div>
         <div className="max-w-full space-y-6 mt-10">
           <div className="space-y-6">
-            {/* SubCategory and Instance Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                카테고리
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {subCategories.map((sub) => (
-                  <button
-                    key={sub}
-                    onClick={() => {
-                      setSelectedSub(
-                        sub as keyof (typeof categories)[typeof category]
-                      );
-                      setSelectedInstance(undefined);
-                      setProvideData({
-                        ...provideData,
-                        subCategory: sub,
-                      });
-                    }}
-                    disabled={isFieldDisabled("subCategory")}
-                    className={`px-4 py-2 text-sm rounded-md border transition-all duration-200 
-                      ${
-                        isFieldDisabled("subCategory")
-                          ? "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-                          : selectedSub === sub
-                          ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20"
-                          : "bg-[#1A1A1A] text-white border-white/5 hover:bg-[#252525]"
-                      }`}
-                  >
-                    {sub}
-                  </button>
-                ))}
-              </div>
-              {selectedSub && (
-                <div className="space-y-2 flex flex-col">
-                  <label className="block text-sm font-medium text-gray-300">
-                    하위 카테고리
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {instances.map((instance) => (
-                      <button
-                        key={instance}
-                        onClick={() => {
-                          setSelectedInstance(instance);
-                          setProvideData({
-                            ...provideData,
-                            productType: instance,
-                          });
-                        }}
-                        className={`px-4 py-2 text-sm rounded-md border transition-all duration-200 
-                        ${
-                          selectedInstance === instance
-                            ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20"
-                            : "bg-[#1A1A1A] text-white border-white/5 hover:bg-[#252525] hover:border-blue-500/50 hover:scale-[1.02] hover:shadow-md"
-                        }`}
-                      >
-                        {instance}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Brand Information */}
             <div>
               <label className="block text-sm font-medium text-gray-300">
@@ -404,34 +312,6 @@ export const ProvidePanel = ({
                   {affiliateCheckMessage}
                 </p>
               )}
-            </div>
-
-            {/* Conditional Fields based on Sale URL */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                상품명
-              </label>
-              <input
-                type="text"
-                placeholder={
-                  isSaleUrlEntered
-                    ? "상품명을 입력하세요"
-                    : "판매 URL을 입력하면 활성화됩니다"
-                }
-                onChange={(e) =>
-                  setProvideData({
-                    ...provideData,
-                    name: e.target.value,
-                  })
-                }
-                disabled={!isSaleUrlEntered || isFieldDisabled("name")}
-                className={`w-full px-4 py-3 rounded-lg border transition-colors outline-none
-                  ${
-                    isFieldDisabled("name")
-                      ? "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-                      : "bg-[#1A1A1A] text-white border-white/5 focus:border-blue-500"
-                  }`}
-              />
             </div>
 
             {/* 제출 버튼 */}
