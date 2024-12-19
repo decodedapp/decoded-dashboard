@@ -68,7 +68,7 @@ export interface SnsInfo {
  * @param sns Optional record of social media links, with string keys and values.
  * @param tags Optional record of tags related to the artist, with string keys and values.
  */
-export interface ArtistInfo {
+export interface IdentityInfo {
   /**
    * Rule: Name should be in English.
    * @example {"en": "Jennie", "kr": "제니"}
@@ -355,11 +355,11 @@ interface RequestedItem {
   subCategory?: string;
   productType?: string;
   position: Position;
+  context?: string;
 }
 
 interface RequestImage {
-  title: string;
-  requestedItems: Record<string, RequestedItem[]>;
+  requestedItems: RequestedItem[];
   requestBy: string;
   imageFile: string;
   metadata: Record<string, string>;
@@ -373,6 +373,7 @@ enum SnsType {
 interface Point {
   x: number;
   y: number;
+  context?: string;
 }
 
 interface SaleInfo {
@@ -436,7 +437,7 @@ interface ImageDocument {
   uploadBy: string;
 }
 
-interface ArtistDocument {
+interface IdentityDocument {
   id: string;
   name: Record<string, string>;
   category: string;

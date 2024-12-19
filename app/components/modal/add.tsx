@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   ImageDocument,
-  ArtistDocument,
+  IdentityDocument,
   Point,
   RequestedItem,
 } from "@/types/model";
@@ -19,100 +19,26 @@ interface AddItemModalProps {
   image: ImageDocument;
 }
 
-interface ExtendedPoint extends Point {
-  artistId?: string;
-}
-
 export function AddItemModal({ id, image }: AddItemModalProps) {
-  const [newMarkers, setNewMarkers] = useState<ExtendedPoint[]>([]);
-  const [searchQueries, setSearchQueries] = useState<Record<number, string>>(
-    {}
-  );
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<{
-    itemClass: ItemClass;
-    itemSubClass: ItemSubClass;
-    category: string;
-  } | null>(null);
-
-  const [celebs, setCelebs] = useState<ArtistDocument[]>([]);
-  const [newCeleb, setNewCeleb] = useState({
-    name: "",
-    category: "",
-    requestBy: "",
-  });
+  const [newMarkers, setNewMarkers] = useState<Point[]>([]);
 
   useEffect(() => {
     const fetchCelebs = async () => {
       try {
-        const res = await networkManager.request("artists", "GET", null);
-        const artists = res.data.artists.map((celeb: any) => ({
+        const res = await networkManager.request("identities", "GET", null);
+        const identities = res.data.identities.map((celeb: any) => ({
           name: celeb.name,
           category: celeb.category,
           id: celeb._id,
           profileImageUrl: celeb.profile_image_url,
         }));
-        setCelebs(artists);
       } catch (error) {
-        console.error("Failed to fetch artists:", error);
+        console.error("Failed to fetch identities:", error);
       }
     };
 
     fetchCelebs();
   }, []);
-
-  const handleSearchChange = (index: number, query: string) => {
-    setSearchQueries((prev) => ({
-      ...prev,
-      [index]: query,
-    }));
-  };
-
-  // 필터링된 셀럽 목록
-  const getFilteredCelebs = (index: number) => {
-    const query = searchQueries[index] || "";
-    return celebs.filter((celeb) =>
-      celeb.name.ko.toLowerCase().includes(query.toLowerCase())
-    );
-  };
-
-  // 새로운 셀럽 요청 핸들러
-  const handleCelebRequest = async (celeb: {
-    name: string;
-    category: string;
-    requestBy: string;
-  }) => {
-    const address = sessionStorage.getItem("USER_DOC_ID");
-    if (!celeb.name || celeb.category === "") {
-      alert("모든 필드를 입력해주세요");
-      return;
-    }
-    if (address) {
-      try {
-        await networkManager.request("request/artist", "POST", {
-          ...celeb,
-          requestBy: address,
-        });
-        alert("요청이 완료되었습니다.");
-        setShowAddForm(false);
-      } catch (error: any) {
-        alert(
-          error.response?.data?.description || "요청 중 오류가 발생했습니다."
-        );
-      }
-    } else {
-      alert("로그인이 필요합니다");
-    }
-  };
-
-  // 마커별 아티스트 선택 핸들러
-  const handleArtistSelect = (markerId: number, artistId: string) => {
-    setNewMarkers((prev) =>
-      prev.map((marker, idx) =>
-        idx === markerId ? { ...marker, artistId } : marker
-      )
-    );
-  };
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -122,21 +48,15 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
     setNewMarkers((prev) => [...prev, { x, y }]);
   };
 
-  const handleAdd = async (points: ExtendedPoint[]) => {
-    console.log("Adding new items:", points);
-    const items: Record<string, RequestedItem[]> = {};
+  const handleAdd = async (points: Point[]) => {
+    const items: RequestedItem[] = [];
     points.forEach((point) => {
-      if (point.artistId) {
-        if (!items[point.artistId]) {
-          items[point.artistId] = [];
-        }
-        items[point.artistId].push({
-          position: {
-            top: point.y.toString(),
-            left: point.x.toString(),
-          },
-        });
-      }
+      items.push({
+        position: {
+          top: point.y.toString(),
+          left: point.x.toString(),
+        },
+      });
     });
     if (sessionStorage.getItem("USER_DOC_ID") === null) {
       alert("로그인이 필요합니다");
@@ -153,7 +73,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
       .then(() => {
         alert("요청이 완료되었습니다.");
         setNewMarkers([]);
-        setShowAddForm(false);
       })
       .catch((error) => {
         alert(
@@ -164,7 +83,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
 
   const handleClose = () => {
     setNewMarkers([]);
-    setShowAddForm(false);
     (
       document.getElementById(`add_item_modal_${id}`) as HTMLDialogElement
     )?.close();
@@ -211,15 +129,7 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
           {/* Selected Markers Area */}
           <SelectedMarkersArea
             newMarkers={newMarkers}
-            newCeleb={newCeleb}
-            handleArtistSelect={handleArtistSelect}
             setNewMarkers={setNewMarkers}
-            setNewCeleb={setNewCeleb}
-            searchQueries={searchQueries}
-            handleSearchChange={handleSearchChange}
-            getFilteredCelebs={getFilteredCelebs}
-            showAddForm={showAddForm}
-            setShowAddForm={setShowAddForm}
           />
         </div>
         {/* Footer */}
@@ -360,64 +270,11 @@ const Caution = () => {
 
 const SelectedMarkersArea = ({
   newMarkers,
-  newCeleb,
-  handleArtistSelect,
   setNewMarkers,
-  setNewCeleb,
-  searchQueries,
-  handleSearchChange,
-  getFilteredCelebs,
-  showAddForm,
-  setShowAddForm,
 }: {
-  newMarkers: ExtendedPoint[];
-  newCeleb: {
-    name: string;
-    category: string;
-    requestBy: string;
-  };
-  handleArtistSelect: (markerId: number, artistId: string) => void;
+  newMarkers: Point[];
   setNewMarkers: React.Dispatch<React.SetStateAction<Point[]>>;
-  setNewCeleb: React.Dispatch<
-    React.SetStateAction<{ name: string; category: string; requestBy: string }>
-  >;
-  searchQueries: Record<number, string>;
-  handleSearchChange: (index: number, query: string) => void;
-  getFilteredCelebs: (index: number) => ArtistDocument[];
-  showAddForm: boolean;
-  setShowAddForm: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const [loading, setLoading] = useState(false);
-
-  const handleCelebRequest = (celeb: {
-    name: string;
-    category: string;
-    requestBy: string;
-  }) => {
-    const address = sessionStorage.getItem("USER_DOC_ID");
-    if (!celeb.name || celeb.category === "") {
-      alert("Please fill in all fields");
-      return;
-    }
-    if (address) {
-      celeb.requestBy = address;
-      setLoading(true);
-      networkManager
-        .request("request/artist", "POST", celeb)
-        .then(() => {
-          alert("요청이 완료되었습니다.");
-        })
-        .catch((error) => {
-          const errorMessage =
-            error.response?.data?.description || "요청중 오류가 발생했습니다.";
-          console.error("요청 실패:", errorMessage);
-          alert(errorMessage);
-        });
-    } else {
-      alert("Please login first");
-    }
-  };
-
   return (
     <>
       {newMarkers.map((marker, idx) => (
@@ -425,6 +282,13 @@ const SelectedMarkersArea = ({
           key={idx}
           className="relative items-center justify-between p-4 bg-gray-50 rounded-lg max-w-[600px] mx-auto"
         >
+          <div
+            className="absolute top-2 left-2 w-6 h-6 flex items-center justify-center 
+            bg-blue-500 text-white rounded-full font-medium text-sm"
+          >
+            {idx + 1}
+          </div>
+
           {/* Category Select Section  */}
           <div className="flex items-center justify-between mb-4">
             {/* Delete Button  */}
@@ -452,165 +316,6 @@ const SelectedMarkersArea = ({
               </svg>
             </button>
           </div>
-
-          {/* 아티스트 선택 */}
-          <div className="pt-4">
-            <div className="mb-2">
-              <label className="text-sm text-gray-500">아티스트 선택</label>
-              <input
-                type="text"
-                placeholder="아티스트 검색..."
-                className="w-full px-3 py-2 border rounded-md text-black"
-                onChange={(e) => handleSearchChange(idx, e.target.value)}
-              />
-            </div>
-
-            {/* 아티스트 목록 */}
-            {searchQueries[idx] && (
-              <div className="max-h-80 overflow-y-auto rounded-md border">
-                {getFilteredCelebs(idx).length > 0 ? (
-                  getFilteredCelebs(idx).map((celeb) => (
-                    <div
-                      key={celeb.id}
-                      onClick={() => handleArtistSelect(idx, celeb.id)}
-                      className={`
-    flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-100 transition-colors duration-200
-     ${
-       marker.artistId === celeb.id
-         ? "bg-blue-50 border-l-4 border-blue-500"
-         : ""
-     } 
-  `}
-                    >
-                      {/* 프로필 이미지 */}
-                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                        {celeb.profileImageUrl ? (
-                          <Image
-                            src={celeb.profileImageUrl}
-                            alt={celeb.name.ko}
-                            width={48}
-                            height={48}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                            <svg
-                              className="w-6 h-6 text-gray-400"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 아티스트 정보 */}
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">
-                          {celeb.name.ko}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-0.5">
-                          {celeb.category}
-                        </div>
-                      </div>
-
-                      {/* 선택 표시 아이콘 */}
-                      <div
-                        className={`
-    flex-shrink-0 w-5 h-5 rounded-full ${
-      marker.artistId === celeb.id ? "text-blue-500" : "text-gray-300"
-    }}
-  `}
-                      >
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center">
-                    <p className="text-gray-500 mb-2">
-                      찾으시는 아티스트가 없나요?
-                    </p>
-                    {!showAddForm ? (
-                      <button
-                        onClick={() => setShowAddForm(true)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        아티스트 추가 요청하기
-                      </button>
-                    ) : (
-                      <div className="max-w-md mx-auto p-4 border rounded-lg">
-                        <h3 className="font-bold mb-3 text-black">
-                          셀럽 추가 요청
-                        </h3>
-                        <input
-                          type="text"
-                          placeholder="셀럽 이름"
-                          className="w-full p-2 border rounded mb-2 text-black"
-                          value={newCeleb.name}
-                          onChange={(e) =>
-                            setNewCeleb({ ...newCeleb, name: e.target.value })
-                          }
-                        />
-                        <select
-                          className="w-full p-2 border rounded mb-4 text-black"
-                          value={newCeleb.category}
-                          onChange={(e) =>
-                            setNewCeleb({
-                              ...newCeleb,
-                              category: e.target.value,
-                            })
-                          }
-                        >
-                          <option value="kpop">K-POP</option>
-                          <option value="actor">배우</option>
-                          <option value="athlete">운동선수</option>
-                        </select>
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            onClick={() => setShowAddForm(false)}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                          >
-                            취소
-                          </button>
-                          <button
-                            onClick={() => handleCelebRequest(newCeleb)}
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
-                            disabled={!newCeleb.name}
-                          >
-                            {loading ? (
-                              <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                              </>
-                            ) : (
-                              <span>추가 요청하기</span>
-                            )}
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-2">
-                          * 요청하신 셀럽 정보는 검토 후 24시간 이내에
-                          반영됩니다.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       ))}
     </>
@@ -621,30 +326,17 @@ const RequestButton = ({
   newMarkers,
   handleAdd,
 }: {
-  newMarkers: ExtendedPoint[];
-  handleAdd: (markers: ExtendedPoint[]) => void;
+  newMarkers: Point[];
+  handleAdd: (markers: Point[]) => void;
 }) => {
-  const isFilled = () => {
-    for (const marker of newMarkers) {
-      if (!marker.artistId) {
-        return false;
-      }
-    }
-    return true;
-  };
   return (
     <div className="px-8 py-5 border-t border-gray-100">
       <div className="max-w-[600px] mx-auto">
         <button
           onClick={() => handleAdd(newMarkers)}
-          disabled={!isFilled()}
           className={`
                 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200
-                ${
-                  isFilled()
-                    ? "bg-black text-white hover:bg-gray-800"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }
+bg-black text-white hover:bg-gray-800
               `}
         >
           요청하기 {newMarkers.length > 0 && `(${newMarkers.length})`}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArtistInfo } from "@/types/model";
+import { IdentityInfo } from "@/types/model";
 import { networkManager } from "@/network/network";
 import { arrayBufferToBase64 } from "@/utils/util";
 
@@ -8,24 +8,24 @@ enum SnsType {
   Youtube = "youtube",
 }
 
-export const ArtistModal = ({
+export const IdentityModal = ({
   id,
   requestId,
-  artistName,
-  artistCategory,
+  identityName,
+  identityCategory,
   onUpdate,
 }: {
   id: number;
   requestId: string;
-  artistName: Record<string, string>;
-  artistCategory: string;
+  identityName: Record<string, string>;
+  identityCategory: string;
   onUpdate: () => void;
 }) => {
   const [name, setName] = useState<Record<string, string>>({
-    ko: artistName?.ko || "",
-    en: artistName?.en || "",
+    ko: identityName?.ko || "",
+    en: identityName?.en || "",
   });
-  const [category, setCategory] = useState<string>(artistCategory);
+  const [category, setCategory] = useState<string>(identityCategory);
   const [aka, setAka] = useState<string[]>([]);
   const [group, setGroup] = useState<Record<string, string>>({
     en: "",
@@ -74,7 +74,7 @@ export const ArtistModal = ({
       platform: platform,
       url: url,
     }));
-    const newArtistInfo: ArtistInfo = {
+    const newIdentityInfo: IdentityInfo = {
       name: name,
       category: category,
       nationality: nationality,
@@ -85,36 +85,36 @@ export const ArtistModal = ({
     const buf = await imageFile.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
     const requestBody = {
-      artist_info: newArtistInfo,
+      identity_info: newIdentityInfo,
       image_file: base64,
     };
     console.log(requestBody);
     await networkManager.request(
-      `upload/artist?request=${requestId}`,
+      `upload/identity?request=${requestId}`,
       "POST",
       requestBody
     );
     defaultState();
     onUpdate();
-    alert("Artist is added successfully!");
+    alert("Identity is added successfully!");
   };
 
   return (
     <dialog
-      id={`artist_modal_${id}`}
+      id={`identity_modal_${id}`}
       className="modal flex flex-col w-[90vw] max-w-4xl h-[90vh] p-6 bg-white rounded-lg left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-auto"
     >
       <div className="flex flex-col space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 pb-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            아티스트 정보 수정
+            아이덴티티 정보 수정
           </h2>
           <button
             onClick={() =>
               (
                 document.getElementById(
-                  `artist_modal_${id}`
+                  `identity_modal_${id}`
                 ) as HTMLDialogElement
               )?.close()
             }

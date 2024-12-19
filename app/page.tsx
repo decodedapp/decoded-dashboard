@@ -3,7 +3,7 @@ import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import AdminLogin from "./components/login/login";
 import { networkManager } from "@/network/network";
-import { ArtistModal } from "./components/modal/artist";
+import { IdentityModal } from "./components/modal/identity";
 import { ImagePreviewModal } from "./components/modal/image";
 import { BrandModal } from "./components/modal/brand";
 import { AddItemModal } from "./components/modal/add";
@@ -24,12 +24,6 @@ import {
   AdditionalProvideFields,
   HasFields,
 } from "@/types/model";
-import {
-  ItemClass,
-  ItemSubClass,
-  subClassesByClass,
-  categoriesBySubClass,
-} from "@/constants/categories";
 import { ProvideStatus } from "@/constants/schema";
 import {
   arrayBufferToBase64,
@@ -286,6 +280,7 @@ const ImageRequestSection = () => {
 
   const handleUploadImage = async (index: number) => {
     const request = imageRequests[index];
+    console.log("request", request);
     const requestWithArrayStyle = {
       ...request.doc,
       style:
@@ -295,7 +290,11 @@ const ImageRequestSection = () => {
     };
     const isNew: boolean = request.metadata.isNew;
     if (isNew) {
-      const uploadImage = { imageBase: requestWithArrayStyle };
+      const uploadImage = {
+        imageBase: requestWithArrayStyle,
+        itemsWithIdentity: request.itemsWithIdentity,
+      };
+      console.log("uploadImage", uploadImage);
       await networkManager
         .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
         .then(() => {
@@ -310,8 +309,9 @@ const ImageRequestSection = () => {
       const updateItem = {
         requestBy: request.requestBy,
         imageDocId: request.metadata.imageDocId,
-        items: request.doc.requestedItems,
+        items: request.itemsWithIdentity,
       };
+      console.log("updateItem", updateItem);
       await networkManager
         .request(`update/items?id=${request.Id}`, "POST", updateItem)
         .then(() => {
@@ -346,6 +346,7 @@ const ImageRequestSection = () => {
         }
         return request;
       });
+      console.log("updatedRequests", updatedRequests);
       setImageRequests(updatedRequests);
     } catch (error) {
       alert("이미지 요청 목록을 불러오는데 실패했습니다.");
@@ -379,7 +380,6 @@ const ImageRequestSection = () => {
       description: string;
       style: string;
       requestedItems: Record<string, RequestedItem[]>;
-      artist: string;
     }
   ) => {
     sessionStorage.setItem(
@@ -397,11 +397,10 @@ const ImageRequestSection = () => {
                 title: updatedDoc.title,
                 description: updatedDoc.description,
                 style: updatedDoc.style,
-                requestedItems: updatedDoc.requestedItems,
               },
+              itemsWithIdentity: updatedDoc.requestedItems,
               metadata: {
                 ...request.metadata,
-                subject: updatedDoc.artist,
               },
             }
           : request
@@ -610,10 +609,6 @@ const ImageRequestSection = () => {
               description: request.doc.description || "",
               style: request.doc.style || "",
               requestedItems: request.doc.requestedItems,
-              artist: {
-                id: Object.keys(request.doc.requestedItems)[0],
-                name: request.metadata.subject,
-              },
             }}
             onUpdate={(updatedDoc) =>
               handleUpdateRequest(request.Id, updatedDoc)
@@ -636,11 +631,11 @@ const ArtistRequestSection = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchArtistRequests = async () => {
-    console.log("fetching artist requests");
+    console.log("fetching identity requests");
     setIsLoading(true);
     try {
       const res = await networkManager.request(
-        "requests?doc_type=artist",
+        "requests?doc_type=identity",
         "GET",
         null
       );
@@ -748,7 +743,7 @@ const ArtistRequestSection = () => {
                     onClick={() =>
                       (
                         document.getElementById(
-                          `artist_modal_${index}`
+                          `identity_modal_${index}`
                         ) as HTMLDialogElement
                       )?.showModal()
                     }
@@ -762,12 +757,12 @@ const ArtistRequestSection = () => {
                   >
                     삭제
                   </button>
-                  <ArtistModal
+                  <IdentityModal
                     id={index}
                     requestId={artist._id}
-                    artistName={artist.doc.name}
+                    identityName={artist.doc.name}
                     onUpdate={fetchArtistRequests}
-                    artistCategory={artist.doc.category}
+                    identityCategory={artist.doc.category}
                   />
                 </td>
               </tr>
@@ -937,14 +932,9 @@ const BrandRequestSection = () => {
 
 const RequestSection = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 2;
   // State of navigation
   const [isStepComplete, setIsStepComplete] = useState(false);
-  // State of step1
-  const [selectedCeleb, setSelectedCeleb] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   // State of step2
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -954,33 +944,28 @@ const RequestSection = () => {
   useEffect(() => {
     switch (currentStep) {
       case 1:
-        setIsStepComplete(!!selectedCeleb);
-        break;
-      case 2:
         setIsStepComplete(!!selectedImage);
         break;
-      case 3:
+      case 2:
         setIsStepComplete(points.length > 0);
         break;
       default:
         setIsStepComplete(false);
     }
-  }, [currentStep, selectedCeleb, selectedImage, points]);
+  }, [currentStep, selectedImage, points]);
 
   const defaultState = () => {
     setCurrentStep(1);
-    setSelectedCeleb(null);
     setSelectedImage(null);
     setImageFile(null);
     setPoints([]);
   };
 
   const handleSubmit = async () => {
-    if (!selectedCeleb || !imageFile) {
+    if (!imageFile) {
       alert("Please select a celebrity and upload an image");
       return;
     }
-    const title = `${selectedCeleb.name} 아이템 요청`;
     const items: RequestedItem[] = [];
     for (const point of points) {
       items.push({
@@ -988,20 +973,16 @@ const RequestSection = () => {
           top: point.y.toString(),
           left: point.x.toString(),
         },
+        context: point.context,
       });
     }
-    const requestedItems: Record<string, RequestedItem[]> = {};
-    requestedItems[selectedCeleb.id] = items;
     const buffer = await imageFile?.arrayBuffer();
     const base64Image = arrayBufferToBase64(buffer);
     const requestImage: RequestImage = {
-      title,
-      requestedItems,
+      requestedItems: items,
       requestBy: sessionStorage.getItem("USER_DOC_ID")!,
       imageFile: base64Image,
-      metadata: {
-        subject: selectedCeleb.name,
-      },
+      metadata: {},
     };
     networkManager
       .request("request/image", "POST", requestImage)
@@ -1084,261 +1065,6 @@ const RequestSection = () => {
   );
 
   const Step1 = () => {
-    const [searchQuery, setSearchQuery] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [newCeleb, setNewCeleb] = useState({
-      name: "",
-      category: "",
-      requestBy: "",
-    });
-    const [celebs, setCelebs] = useState<
-      {
-        name: string;
-        category: string;
-        id: string;
-      }[]
-    >([]);
-    useEffect(() => {
-      networkManager.request("artists", "GET", null).then((res) => {
-        for (const celeb of res.data.artists) {
-          setCelebs((prev) => [
-            ...prev,
-            { name: celeb.name.ko, category: celeb.category, id: celeb._id },
-          ]);
-        }
-      });
-    }, []);
-
-    const onRequestComplete = () => {
-      setLoading(false);
-      setShowAddForm(false);
-      setNewCeleb({ name: "", category: "", requestBy: "" });
-    };
-
-    const filteredCelebs =
-      celebs.length > 0
-        ? celebs.filter((celeb) =>
-            celeb.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        : [];
-
-    const handleCelebRequest = (celeb: {
-      name: string;
-      category: string;
-      requestBy: string;
-    }) => {
-      const address = sessionStorage.getItem("USER_DOC_ID");
-      if (!celeb.name || celeb.category === "") {
-        alert("Please fill in all fields");
-        return;
-      }
-      if (address) {
-        celeb.requestBy = address;
-        setLoading(true);
-        networkManager
-          .request("request/artist", "POST", celeb)
-          .then(() => {
-            alert("요청이 완료되었습니다.");
-            onRequestComplete();
-          })
-          .catch((error) => {
-            const errorMessage =
-              error.response?.data?.description ||
-              "요청중 오류가 발생했습니다.";
-            console.error("요청 실패:", errorMessage);
-            alert(errorMessage);
-            onRequestComplete();
-          });
-      } else {
-        alert("Please login first");
-      }
-    };
-
-    return (
-      <div className="relative min-h-screen space-y-8">
-        <h2 className="text-3xl font-bold text-center mb-8">
-          어떤 셀럽의 아이템을 찾고 계신가요?
-        </h2>
-
-        <div className="max-w-md mx-auto">
-          {/* Search Input */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg
-                className="h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-              placeholder="셀럽 이름을 검색해주세요"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-
-          {/* Search Result */}
-          {searchQuery && (
-            <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
-              {filteredCelebs.length > 0 ? (
-                <div className="divide-y divide-gray-200">
-                  {filteredCelebs.map((celeb, index) => (
-                    <div
-                      key={index}
-                      className={`p-4 cursor-pointer transition-colors
-                        ${
-                          selectedCeleb?.name === celeb.name
-                            ? "bg-yellow-50"
-                            : "hover:bg-gray-50"
-                        }`}
-                      onClick={() =>
-                        setSelectedCeleb({ id: celeb.id, name: celeb.name })
-                      }
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {celeb.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {celeb.category}
-                          </p>
-                        </div>
-                        {selectedCeleb?.name === celeb.name && (
-                          <svg
-                            className="h-5 w-5 text-yellow-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center">
-                  <p className="text-gray-500 mb-4">
-                    찾으시는 셀럽이 목록에 없나요?
-                  </p>
-                  {!showAddForm ? (
-                    <button
-                      onClick={() => setShowAddForm(true)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      셀럽 추가 요청하기
-                    </button>
-                  ) : (
-                    <div className="max-w-md mx-auto p-4 border rounded-lg">
-                      <h3 className="font-bold mb-3">셀럽 추가 요청</h3>
-                      <input
-                        type="text"
-                        placeholder="셀럽 이름"
-                        className="w-full p-2 border rounded mb-2"
-                        value={newCeleb.name}
-                        onChange={(e) =>
-                          setNewCeleb({ ...newCeleb, name: e.target.value })
-                        }
-                      />
-                      <select
-                        className="w-full p-2 border rounded mb-4"
-                        value={newCeleb.category}
-                        onChange={(e) =>
-                          setNewCeleb({ ...newCeleb, category: e.target.value })
-                        }
-                      >
-                        <option value="kpop">K-POP</option>
-                        <option value="singer">가수</option>
-                        <option value="rapper">래퍼</option>
-                        <option value="actor">배우</option>
-                        <option value="athlete">운동선수</option>
-                      </select>
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => setShowAddForm(false)}
-                          className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                        >
-                          취소
-                        </button>
-                        <button
-                          onClick={() => handleCelebRequest(newCeleb)}
-                          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
-                          disabled={!newCeleb.name}
-                        >
-                          {loading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                            </>
-                          ) : (
-                            <span>추가 요청하기</span>
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">
-                        * 요청하신 셀럽 정보는 검토 후 24시간 이내에 반영됩니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Selected Celeb Display */}
-          {selectedCeleb && !searchQuery && (
-            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {selectedCeleb.name}
-                  </p>
-                  <p className="text-sm text-gray-500">선택됨</p>
-                </div>
-                <button
-                  onClick={() => setSelectedCeleb(null)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const Step2 = () => {
     const [dragActive, setDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -1371,9 +1097,7 @@ const RequestSection = () => {
     return (
       <div className="space-y-8">
         <div className="max-w-md mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-2">
-            {selectedCeleb?.name}의 사진을 업로드해주세요
-          </h2>
+          <h2 className="text-3xl font-bold mb-2">사진을 업로드해주세요</h2>
           <p className="text-gray-500">
             아이템 식별에 도움이 될 만한 선명한 사진을 올려주세요
           </p>
@@ -1507,6 +1231,7 @@ const RequestSection = () => {
                   />
                 </svg>
               </div>
+
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">
                   업로드 팁
@@ -1526,7 +1251,7 @@ const RequestSection = () => {
     );
   };
 
-  const Step3 = () => {
+  const Step2 = () => {
     const imageRef = useRef<HTMLDivElement>(null);
 
     const handleImageClick = (e: React.MouseEvent) => {
@@ -1537,6 +1262,12 @@ const RequestSection = () => {
       const y = ((e.clientY - rect.top) / rect.height) * 100;
 
       setPoints([...points, { x, y }]);
+    };
+
+    const updatePointContext = (index: number, context: string) => {
+      setPoints(
+        points.map((point, i) => (i === index ? { ...point, context } : point))
+      );
     };
 
     const removePoint = (index: number) => {
@@ -1627,38 +1358,56 @@ const RequestSection = () => {
           {points.length > 0 && (
             <div className="mt-6 space-y-4">
               <h3 className="font-medium text-gray-900">선택한 아이템</h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {points.map((point, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-gray-50 rounded-lg flex items-center justify-between"
+                    className="bg-gray-50 rounded-lg overflow-hidden"
                   >
-                    <div className="flex items-center space-x-2">
-                      <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                        <span className="text-xs text-white font-bold">
-                          {index + 1}
+                    {/* 헤더 부분 */}
+                    <div className="p-3 flex items-center justify-between border-b border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-xs text-white font-bold">
+                            {index + 1}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-gray-600">아이템 {index + 1}</span>
-                    </div>
-                    <button
-                      onClick={() => removePoint(index)}
-                      className="text-gray-400 hover:text-red-500 p-1"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <span className="text-gray-600">
+                          아이템 {index + 1}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removePoint(index)}
+                        className="text-gray-400 hover:text-red-500 p-1"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* 컨텍스트 입력 영역 */}
+                    <div className="p-3">
+                      <textarea
+                        rows={2}
+                        value={point.context || ""}
+                        onChange={(e) =>
+                          updatePointContext(index, e.target.value)
+                        }
+                        className="w-full text-sm p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="이 아이템에 대한 추가 정보를 입력해주세요 (선택사항)"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1682,7 +1431,6 @@ const RequestSection = () => {
         <div className="mt-8">
           {currentStep === 1 && <Step1 />}
           {currentStep === 2 && <Step2 />}
-          {currentStep === 3 && <Step3 />}
         </div>
       </div>
 
