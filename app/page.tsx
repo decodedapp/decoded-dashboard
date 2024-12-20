@@ -2362,9 +2362,9 @@ const FinalizeSection = () => {
       const newRequest: FinalizeItemRequest = {
         itemDocId,
         finalizeFields: prev ? [...prev.finalizeFields] : [],
-        resetFields: prev ? [...(prev.resetFields || [])] : [],
-        saleInfoUrls: prev?.saleInfoUrls || [],
-        resetSaleInfoUrls: prev?.resetSaleInfoUrls || [], // 새로운 필드 추가
+        resetFields: prev ? [...(prev.resetFields || [])] : undefined,
+        saleInfoUrls: prev?.saleInfoUrls || undefined,
+        resetSaleInfoUrls: prev?.resetSaleInfoUrls || undefined,
         base64Image: prev?.base64Image,
       };
 
@@ -2477,7 +2477,8 @@ const FinalizeSection = () => {
     setUploadLoading(true);
     const converted = convertKeysToSnakeCase(finalizeItemRequest);
     const fields = [];
-    if (finalizeItemRequest?.saleInfoUrls !== undefined) {
+    console.log("Finalize Item Request", finalizeItemRequest);
+    if (finalizeItemRequest?.saleInfoUrls) {
       fields.push("sale_info");
     }
     for (const field of converted.finalize_fields) {
