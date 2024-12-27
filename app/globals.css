@@ -3,11 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --text-color: #000000;
+  --text-color: #ffffff;
+  --background-color: #111111;
 }
 
 body {
-  background-color: #ffffff;
+  background-color: var(--background-color);
   min-height: 100vh;
   color: var(--text-color);
 }

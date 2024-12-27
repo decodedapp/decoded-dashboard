@@ -1,5 +1,10 @@
-
-import type { ItemClass, ItemSubClass, MainCategory, SubCategoryMap, InstanceMap } from "@/constants/categories";
+import type {
+  ItemClass,
+  ItemSubClass,
+  MainCategory,
+  SubCategoryMap,
+  InstanceMap,
+} from "@/constants/categories";
 import { ProvideStatus } from "@/constants/schema";
 
 /**
@@ -390,22 +395,34 @@ interface ItemDetail<T> {
   requestedAt: string;
 }
 
+interface ItemMetadata {
+  name?: string;
+  description?: string;
+  brand?: string;
+  designedBy?: string;
+  material?: string;
+  color?: string;
+  itemClass?: string;
+  itemSubClass?: string;
+  category?: string;
+  subCategory?: string;
+  productType?: string;
+}
+
+interface LinkInfo {
+  provider: string;
+  value: string;
+  label: string;
+}
+
 interface ItemDocument {
   Id: string;
-  name: ItemDetail<string>;
-  brand: ItemDetail<string>;
-  designedBy: ItemDetail<string>;
-  saleInfo: ItemDetail<SaleInfo[]>;
-  imageUrl: string;
-  itemClass: string;
-  itemSubClass: string;
-  category: string;
-  subCategory: ItemDetail<string>;
-  productType: ItemDetail<string>;
-  material: ItemDetail<string>;
+  requester: string;
+  requestedAt: string;
+  linkInfo?: LinkInfo[];
+  metadata: ItemMetadata;
+  imgUrl: string;
   like: number;
-  description: string;
-  createdAt: string;
 }
 
 interface ItemDocumentWithBrandInfo {
@@ -451,14 +468,8 @@ interface ItemCategory<M extends MainCategory = MainCategory> {
 }
 
 interface ProvideData {
-  docId?: string;
-  name?: string;
-  brand?: string;
-  saleUrl?: string;
-  subCategory?: string;
-  productType?: string;
-  material?: string;
-  designedBy?: string;
+  provider?: string;
+  links?: string[];
 }
 
 interface BrandData {
@@ -476,34 +487,39 @@ interface ProvideInfo<T> {
 
 interface ProvideItemInfoWithMetadata {
   itemDocId: string;
-  isImage: boolean;
-  brandName: string;
-  provideItemInfo: ProvideItemInfo;
+  hasFields: HasFields;
+  unconfirmedLinks?: string[];
 }
 
-interface AdditionalProvideFields {
+interface AdditionalMetadata {
   name?: string;
   material?: string;
   designedBy?: string;
   color?: string;
+  brand?: string;
+  description?: string;
 }
 
 interface HasFields {
   hasImage?: boolean;
+  hasBrand?: boolean;
   hasName?: boolean;
   hasMaterial?: boolean;
   hasDesignedBy?: boolean;
   hasColor?: boolean;
+  hasDescription?: boolean;
 }
 
-interface FinalizeItemRequest {
-  itemDocId: string;
+interface LinkWithLabel {
+  link: string;
+  label: string;
+}
+
+interface ConfirmItemInfo {
   base64Image?: string;
-  resetFields?: string[];
-  finalizeFields: string[];
-  saleInfoUrls?: string[];
-  resetSaleInfoUrls?: string[];
-  additionalProvideFields?: AdditionalProvideFields;
+  approveUrls?: LinkWithLabel[];
+  rejectUrls?: string[];
+  additionalMetadata?: AdditionalMetadata;
 }
 
 interface ProvideItemInfo {

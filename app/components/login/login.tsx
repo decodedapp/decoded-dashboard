@@ -25,14 +25,14 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
       if (sub && iss && aud) {
         try {
           const res = await networkManager.request(
-            "login?id=" + hash(sub + iss + aud),
+            `admin/${hash(sub + iss + aud)}/login`,
             "GET",
             {}
           );
           const sui_acc = jwtToAddress(token, res.data.salt);
           const user_doc_id = res.data.user;
           const _ = await networkManager.request(
-            "user/aka?id=" + user_doc_id + "&aka=" + sui_acc,
+            `user/${user_doc_id}?aka=${sui_acc}`,
             "POST",
             {}
           );

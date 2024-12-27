@@ -69,7 +69,7 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
     console.log("requestAddItem", requestAddItem);
     console.log(image);
     networkManager
-      .request(`request/add/item?id=${image.docId}`, "POST", requestAddItem)
+      .request(`request/image/${image.docId}/add/item`, "POST", requestAddItem)
       .then(() => {
         alert("요청이 완료되었습니다.");
         setNewMarkers([]);

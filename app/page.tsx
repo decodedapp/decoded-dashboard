@@ -12,17 +12,15 @@ import {
   RequestImage,
   RequestedItem,
   Point,
-  ItemDocument,
   ImageDocument,
   Item,
-  Position,
-  ProvideData,
   ItemRequest,
   ProvidedItemDetail,
   ProvideItemInfoWithMetadata,
-  FinalizeItemRequest,
-  AdditionalProvideFields,
+  ConfirmItemInfo,
+  AdditionalMetadata,
   HasFields,
+  LinkWithLabel,
 } from "@/types/model";
 import { ProvideStatus } from "@/constants/schema";
 import {
@@ -73,7 +71,7 @@ const AdminDashboard = () => {
   if (!isAdmin) {
     return (
       <div className="h-[50vh]">
-        <div className="max-w-md w-full space-y-8 p-6 bg-white rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="max-w-md w-full space-y-8 p-6 bg-[#1A1A1A] rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="text-center mb-4">
             <h2 className="text-3xl font-bold text-gray-900">관리자 로그인</h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -92,13 +90,13 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="[h-50vh] bg-gray-50">
+    <div className="[h-50vh] bg-[#1A1A1A]">
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-[#1A1A1A]] shadow-sm">
         <div className="max-w-7xl mx-auto">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
             <h1
-              className="text-2xl font-bold text-gray-900"
+              className="text-2xl font-bold text-white"
               onClick={() => setIsAdmin(false)}
             >
               관리자 대시보드
@@ -118,7 +116,7 @@ const AdminDashboard = () => {
                   py-4 px-1 border-b-2 font-medium text-sm
                   ${
                     currentTab === tab.id
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-[#EAFD66] text-[#EAFD66]"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }
                 `}
@@ -134,7 +132,7 @@ const AdminDashboard = () => {
         {currentTab === "images" && <ImageRequestSection />}
         {currentTab === "artists" && <ArtistRequestSection />}
         {currentTab === "brands" && <BrandRequestSection />}
-        {currentTab === "finalize" && <FinalizeSection />}
+        {currentTab === "finalize" && <ConfirmSection />}
       </div>
     </div>
   );
@@ -145,17 +143,16 @@ const RequestProvideSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-[#222222] rounded-lg shadow overflow-hidden">
         <div className="grid grid-cols-3">
           <button
             className={`
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
             selectedTab === "request"
-              ? "bg-black text-white"
+              ? "bg-[#1A1A1A] text-white"
               : "text-gray-700 hover:bg-gray-50"
           }
-          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
         `}
             onClick={() => setSelectedTab("request")}
           >
@@ -181,10 +178,9 @@ const RequestProvideSection = () => {
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
             selectedTab === "provide"
-              ? "bg-black text-white"
+              ? "bg-[#1A1A1A] text-white"
               : "text-gray-700 hover:bg-gray-50"
           }
-          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
         `}
             onClick={() => setSelectedTab("provide")}
           >
@@ -241,7 +237,7 @@ const RequestProvideSection = () => {
       <div className="mt-6">
         <div
           className={`
-      bg-white rounded-lg shadow
+      bg-[#222222] rounded-lg shadow
       ${selectedTab === "request" ? "block" : "hidden"}
     `}
         >
@@ -249,7 +245,7 @@ const RequestProvideSection = () => {
         </div>
         <div
           className={`
-      bg-white rounded-lg shadow
+      bg-[#222222] rounded-lg shadow
       ${selectedTab === "provide" ? "block" : "hidden"}
     `}
         >
@@ -257,7 +253,7 @@ const RequestProvideSection = () => {
         </div>
         <div
           className={`
-      bg-white rounded-lg shadow
+      bg-[#222222] rounded-lg shadow
       ${selectedTab === "myPage" ? "block" : "hidden"}
     `}
         >
@@ -296,7 +292,7 @@ const ImageRequestSection = () => {
       };
       console.log("uploadImage", uploadImage);
       await networkManager
-        .request(`upload/image?id=${request.Id}`, "POST", uploadImage)
+        .request(`image/upload/${request.Id}`, "POST", uploadImage)
         .then(() => {
           alert("이미지 업로드 완료");
           fetchImageRequests();
@@ -308,12 +304,16 @@ const ImageRequestSection = () => {
     } else {
       const updateItem = {
         requestBy: request.requestBy,
-        imageDocId: request.metadata.imageDocId,
+        requestDocId: request.Id,
         items: request.itemsWithIdentity,
       };
       console.log("updateItem", updateItem);
       await networkManager
-        .request(`update/items?id=${request.Id}`, "POST", updateItem)
+        .request(
+          `image/${request.metadata.imageDocId}/update/items`,
+          "POST",
+          updateItem
+        )
         .then(() => {
           alert("아이템 업데이트 완료");
           fetchImageRequests();
@@ -419,7 +419,7 @@ const ImageRequestSection = () => {
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700 mr-2"></div>
               새로고침 중...
             </>
           ) : (
@@ -443,9 +443,9 @@ const ImageRequestSection = () => {
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-[#222222] shadow rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-[#1A1A1A]">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 이미지
@@ -473,7 +473,7 @@ const ImageRequestSection = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-[#222222] divide-y divide-gray-700">
             {imageRequests?.map((request, index) => (
               <React.Fragment key={index}>
                 <tr key={index} className="cursor-pointer hover:bg-gray-50">
@@ -685,7 +685,7 @@ const ArtistRequestSection = () => {
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700 mr-2"></div>
               새로고침 중...
             </>
           ) : (
@@ -708,9 +708,9 @@ const ArtistRequestSection = () => {
           )}
         </button>
       </div>
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-[#222222] shadow rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-[#1A1A1A]">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 이름
@@ -726,7 +726,7 @@ const ArtistRequestSection = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-[#222222] divide-y divide-gray-700">
             {artistRequests.map((artist, index) => (
               <tr key={index}>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -820,7 +820,7 @@ const BrandRequestSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <h2 className="text-lg font-semibold mb-4">브랜드 요청 목록</h2>
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-[#1A1A1A] shadow rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -838,7 +838,7 @@ const BrandRequestSection = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-[#222222] divide-y divide-gray-700">
             {isLoading ? (
               <tr>
                 <td colSpan={4} className="px-6 py-4 text-center">
@@ -1033,7 +1033,7 @@ const RequestSection = () => {
         <div className="absolute top-5 w-full">
           <div className="h-1 bg-gray-100">
             <div
-              className="h-1 bg-yellow-400 transition-all duration-500"
+              className="h-1 bg-[#EAFD66] transition-all duration-500"
               style={{
                 width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
               }}
@@ -1050,13 +1050,11 @@ const RequestSection = () => {
                   currentStep > index + 1
                     ? "bg-black text-white"
                     : currentStep === index + 1
-                    ? "bg-yellow-400"
+                    ? "bg-[#EAFD66]"
                     : "bg-gray-200"
                 }
               `}
-              >
-                {index + 1}
-              </div>
+              ></div>
             </div>
           ))}
         </div>
@@ -1110,13 +1108,12 @@ const RequestSection = () => {
                 relative
                 aspect-[3/4]
                 rounded-lg
-                border-2
-                border-dashed
+                border-gray-700
                 transition-all
                 ${
                   dragActive
-                    ? "border-yellow-400 bg-yellow-50"
-                    : "border-gray-300 bg-gray-50"
+                    ? "border-yellow-400 bg-[#1A1A1A]"
+                    : "border-gray-700 bg-[#1A1A1A]"
                 }
               `}
               onDragEnter={handleDrag}
@@ -1136,7 +1133,7 @@ const RequestSection = () => {
                 accept="image/*"
               />
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-[#1A1A1A]">
                 <div className="mb-4">
                   <svg
                     className={`w-12 h-12 mb-3 ${
@@ -1435,7 +1432,7 @@ const RequestSection = () => {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+      <div className="sticky bottom-0 left-0 right-0 bg-[#1A1A1A] border-t border-gray-700 shadow-lg">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between">
           <div>{currentStep > 1 && <PrevButton />}</div>
           <div>
@@ -1464,105 +1461,16 @@ const RequestSection = () => {
   );
 };
 
-const DecodingProgress = ({ progress }: { progress: number }) => {
-  const totalBlocks = 20;
-  const filledBlocks = Math.floor((progress / 100) * totalBlocks);
-
-  return (
-    <div className="mt-8 bg-[#1A1A1A] rounded-lg p-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="font-mono text-sm tracking-wider text-emerald-500">
-          DECODING..
-        </div>
-        <div className="font-mono text-sm text-emerald-500">{progress}%</div>
-      </div>
-
-      {/* 프로그레스 바 - 더 뚜렷한 펄스 효과 */}
-      <div className="flex gap-1 mb-4">
-        {[...Array(totalBlocks)].map((_, index) => (
-          <div
-            key={index}
-            className={`
-              h-4 flex-1 transition-all duration-300
-              ${
-                index < filledBlocks
-                  ? "bg-emerald-500 animate-progress-pulse"
-                  : "bg-zinc-700"
-              }
-            `}
-            style={{
-              animationDelay: `${index * 0.1}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="text-center text-sm text-gray-400">아이템 정보 요청</div>
-    </div>
-  );
-};
-
 const ProvideSection = () => {
   const [images, setImages] = useState<ImageDocument[]>([]);
-  console.log("ProvideSection =>", images);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [isOpen, setIsOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     imageId: string;
     artistId: string;
     itemIndex: number;
     item: Item;
   } | null>(null);
-
-  const handleProvideClick = (
-    imageId: string,
-    artistId: string,
-    itemIndex: number,
-    item: Item
-  ) => {
-    setSelectedItem({ imageId, artistId, itemIndex, item });
-    setIsOpen(true);
-  };
-
-  const calculateDecodingProgress = (items: Record<string, Item[]>) => {
-    const allItems = Object.values(items).flat();
-    const totalItems = allItems.length;
-
-    if (totalItems === 0) return 0;
-
-    const decodedItems = allItems.filter((item) => item.isDecoded).length;
-
-    return Math.round((decodedItems / totalItems) * 100);
-  };
-
-  const handleProvideSubmit = async (data: ProvideData) => {
-    console.log("ProvideData", data);
-    const imageDocId = selectedItem?.imageId;
-    const providerId = sessionStorage.getItem("USER_DOC_ID");
-    if (!providerId) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-    if (!imageDocId) {
-      alert("Something went wrong");
-      return;
-    }
-    await networkManager
-      .request(
-        `provide/item?image=${imageDocId}&provider=${providerId}`,
-        "POST",
-        data
-      )
-      .then((res) => {
-        alert("제공 요청이 완료되었습니다.");
-        setIsOpen(false);
-        setSelectedItem(null);
-      })
-      .catch((err) => {
-        alert("제공 요청에 실패하였습니다.");
-      });
-  };
+  const [activeTabs, setActiveTabs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchImages();
@@ -1571,19 +1479,31 @@ const ProvideSection = () => {
   const fetchImages = async () => {
     try {
       setIsLoading(true);
-      const response = await networkManager.request(
-        "images/decoding",
-        "GET",
-        null
-      );
+      const response = await networkManager.request("images", "GET", null);
       const images = convertKeysToCamelCase(response.data.images);
-      console.log("Provide Section =>", images);
       setImages(images);
+      console.log(images);
     } catch (error) {
       console.error("이미지 로딩 실패:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTabChange = (tabKey: string, itemClass: string) => {
+    setActiveTabs((prev) => ({
+      ...prev,
+      [tabKey]: itemClass,
+    }));
+  };
+
+  const handleProvideClick = (
+    imageId: string,
+    artistId: string,
+    itemIndex: number,
+    item: Item
+  ) => {
+    setSelectedItem({ imageId, artistId, itemIndex, item });
   };
 
   if (isLoading) {
@@ -1596,25 +1516,16 @@ const ProvideSection = () => {
 
   return (
     <div className="bg-[#111111] text-white">
-      {/* 컨텐츠 컨테이너 */}
       <div className="relative w-full overflow-hidden">
-        {/* 메인 페이지 */}
-        <div
-          className={`transform transition-transform duration-300 ${
-            isOpen ? "-translate-x-full" : "translate-x-0"
-          }`}
-        >
-          {/* 메인 컨텐츠 */}
-          <div className="max-w-[1400px] mx-auto p-6">
-            {images.map((image, index) => (
-              <div
-                key={index}
-                className="flex flex-col lg:flex-row gap-8 mb-12"
-              >
-                {/* 왼쪽: 이미지 섹션 */}
-                <div className="lg:w-[600px]">
+        {/* 메인 컨텐츠 */}
+        <div className="max-w-[1400px] mx-auto p-6">
+          {images.map((image, index) => (
+            <div key={index} className="flex relative">
+              {/* 왼쪽: 이미지 섹션 */}
+              <div className="flex flex-col lg:flex-row gap-8 mb-12">
+                <div className="lg:w-[600px] lg:sticky lg:top-6 h-fit">
                   <div className="relative w-full aspect-[3/4] group">
-                    {/* 아이템 추가 버튼 수정 */}
+                    {/* 아이템 추가 버튼 */}
                     <button
                       onClick={() =>
                         (
@@ -1623,12 +1534,7 @@ const ProvideSection = () => {
                           ) as HTMLDialogElement
                         )?.showModal()
                       }
-                      className={`
-                    absolute top-4 right-4 z-10
-                    inline-flex items-center px-4 py-2 
-                    bg-gray-800 text-white rounded-md
-                    hover:bg-gray-700 transition-colors
-                  `}
+                      className="absolute top-4 right-4 z-10 inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
                     >
                       <svg
                         className="w-4 h-4 mr-2"
@@ -1645,7 +1551,6 @@ const ProvideSection = () => {
                       </svg>
                       아이템 추가
                     </button>
-                    {/* 아이템 추가 모달 */}
                     <AddItemModal id={index} image={image} />
                     <Image
                       src={image.imgUrl}
@@ -1653,218 +1558,223 @@ const ProvideSection = () => {
                       fill
                       className="object-cover rounded-lg"
                     />
-                    {/* 마커 애니메이션 효과 추가 */}
+                    {/* 마커 애니메이션 */}
                     {Object.values(image.items)
                       .flat()
                       .map((item, idx) => (
                         <div
                           key={idx}
-                          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                          className="absolute -translate-x-1/2 -translate-y-1/2"
                           style={{
                             top: `${item.position.top}%`,
                             left: `${item.position.left}%`,
+                            zIndex: 10,
                           }}
                         >
-                          {/* 외부 링 애니메이션 */}
-                          <div className="absolute inset-0 border-2 border-white/30 rounded-full animate-ping"></div>
+                          {/* 브랜드 배지 */}
+                          {item.item.brandLogoImageUrl && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20">
+                              <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-full shadow-lg h-6 px-2.5">
+                                <div className="flex justify-center items-center gap-1.5">
+                                  <img
+                                    src={item.item.brandLogoImageUrl}
+                                    alt={item.item.brandName || "Brand logo"}
+                                    className="w-3 h-3 object-contain rounded-full"
+                                  />
+                                  <span className="text-xs font-medium text-black whitespace-nowrap">
+                                    {item.item.brandName}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
-                          {/* 내부 마커 */}
-                          <div className="relative w-full h-full">
-                            {/* 외부 원 */}
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-full border-2 border-white/50"></div>
-                            {/* 내부 원 */}
-                            <div className="absolute inset-[4px] bg-white rounded-full shadow-lg"></div>
+                          {/* 마커 */}
+                          <div className="w-6 h-6 cursor-pointer">
+                            <div className="absolute inset-0 border-2 border-gray-700 rounded-full animate-ping"></div>
+                            <div className="relative w-full h-full">
+                              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-full border-2 border-gray-700/50"></div>
+                              <div className="absolute inset-[4px] bg-white rounded-full shadow-lg"></div>
+                            </div>
                           </div>
                         </div>
                       ))}
                   </div>
                 </div>
+              </div>
 
-                {/* 오른쪽: 아이템 목록 섹션 */}
-                <div className="lg:flex-1 lg:max-w-full space-y-4 flex flex-col justify-between">
-                  {Object.entries(image.items).map(([artistId, items], idx) => (
-                    <div key={idx} className="space-y-3">
-                      {items.map((itemDoc, index) => {
-                        const isRequestedStatus = !itemDoc.isDecoded;
+              {/* 오른쪽: 아이템 목록 & ProvidePanel 컨테이너 */}
+              <div className="flex-1 relative overflow-hidden px-4">
+                {/* 아이템 목록 */}
+                <div
+                  className={`
+    w-full transition-transform duration-300 ease-in-out
+    ${selectedItem ? "-translate-x-full" : "translate-x-0"}
+  `}
+                >
+                  {Object.entries(image.items).map(([artistId, items]) => {
+                    // 아이템을 itemClass별로 그룹화
+                    const groupedItems = items.reduce((acc, item) => {
+                      const itemClass =
+                        item.item.item.metadata.itemClass || "기타";
+                      if (!acc[itemClass]) {
+                        acc[itemClass] = [];
+                      }
+                      acc[itemClass].push(item);
+                      return acc;
+                    }, {} as Record<string, typeof items>);
 
-                        return (
-                          <div
-                            key={index}
-                            className="group flex items-center gap-4 bg-[#1A1A1A] p-4 hover:bg-[#222222] transition-colors border border-zinc-800"
+                    const tabKey = `${artistId}-tab`;
+                    const currentTab =
+                      activeTabs[tabKey] || Object.keys(groupedItems)[0] || "";
+
+                    return (
+                      <div key={artistId} className="space-y-6">
+                        {/* 탭 네비게이션 */}
+                        <div className="border-b border-zinc-800">
+                          <nav
+                            className="-mb-px flex space-x-8"
+                            aria-label="Tabs"
                           >
-                            {/* 아이템 이미지 */}
-                            <div className="w-16 h-16 rounded flex-shrink-0 overflow-hidden">
-                              {itemDoc.item.item.imageUrl ? (
-                                <img
-                                  src={itemDoc.item.item.imageUrl}
-                                  alt="아이템 이미지"
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-white/[0.5] flex items-center justify-center">
-                                  <svg
-                                    className="w-8 h-8 text-zinc-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* 아이템 정보 */}
-                            <div className="flex-1 min-w-0">
-                              {/* 카테고리 (소문자로 표시) */}
-                              <div className="text-sm text-zinc-400 uppercase tracking-wide font-medium">
-                                {itemDoc.item.item.category}
-                              </div>
-
-                              {/* 브랜드명 (placeholder) */}
-                              <div className="text-lg font-medium text-white mt-1">
-                                {itemDoc.item.brandName || (
-                                  <div className="h-6 w-32 bg-white/[0.5] rounded animate-pulse"></div>
-                                )}
-                              </div>
-
-                              {/* 아이템명 (placeholder) */}
-                              <div className="text-sm text-zinc-300 mt-0.5">
-                                {itemDoc.item.item.name?.provideInfo?.value || (
-                                  <div className="h-4 w-48 bg-white/[0.5] rounded animate-pulse"></div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* 포인트와 제공 버튼 */}
-                            <div className="flex items-center gap-3">
-                              {/* 포인트 표시 - isDecoded가 false일 때만 표시 */}
-                              {!itemDoc.isDecoded && (
-                                <div className="flex items-center gap-2 bg-white/[0.08] px-3 py-2 rounded">
-                                  <svg
-                                    className="w-5 h-5 text-yellow-400"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM5.7 10.7l2.3-2.3V14a1 1 0 102 0V8.4l2.3 2.3a1 1 0 001.4-1.4l-4-4a1 1 0 00-1.4 0l-4 4a1 1 0 001.4 1.4z" />
-                                  </svg>
-                                  <span className="text-base font-medium text-white">
-                                    10
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* 제공 버튼 또는 구매하기 버튼 */}
-                              {!itemDoc.isDecoded ? (
+                            {Object.entries(groupedItems).map(
+                              ([itemClass, items]) => (
                                 <button
+                                  key={itemClass}
                                   onClick={() =>
-                                    handleProvideClick(
-                                      image.docId,
-                                      artistId,
-                                      index,
-                                      itemDoc
-                                    )
+                                    handleTabChange(tabKey, itemClass)
                                   }
-                                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-medium 
-                text-base transition-colors shadow-lg shadow-blue-500/20"
+                                  className={`
+                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                    ${
+                      currentTab === itemClass
+                        ? "border-[#EAFD66] text-[#EAFD66]"
+                        : "border-transparent text-zinc-400 hover:text-zinc-300 hover:border-zinc-300"
+                    }
+                  `}
                                 >
-                                  제공
+                                  {itemClass}
+                                  <span
+                                    className={`ml-2 py-0.5 px-2 rounded-full text-xs
+                      ${
+                        currentTab === itemClass
+                          ? "bg-[#EAFD66] text-black"
+                          : "bg-zinc-800 text-zinc-400"
+                      }
+                    `}
+                                  >
+                                    {items.length}
+                                  </span>
                                 </button>
-                              ) : (
-                                itemDoc.item.item.saleInfo?.provideInfo?.map(
-                                  (provideInfo, idx) =>
-                                    provideInfo.value &&
-                                    provideInfo.provideStatus ===
-                                      "finalized" && (
-                                      <a
-                                        key={idx}
-                                        href={provideInfo.value.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`group inline-flex items-center gap-2 px-4 py-2 rounded-md
-                                        border transition-all duration-200 text-sm font-medium
-                                        ${
-                                          provideInfo.value.isSoldout
-                                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                            : "bg-white/[0.05] border-white/10 text-white hover:bg-white/[0.1] hover:border-white/20"
-                                        }`}
-                                      >
-                                        {provideInfo.value.isSoldout ? (
-                                          <>
-                                            <span>품절</span>
-                                            <svg
-                                              className="w-4 h-4"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={1.5}
-                                                d="M6 18L18 6M6 6l12 12"
-                                              />
-                                            </svg>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <span>구매하기</span>
-                                            <svg
-                                              className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={1.5}
-                                                d="M17 8l4 4m0 0l-4 4m4-4H3"
-                                              />
-                                            </svg>
-                                          </>
-                                        )}
-                                      </a>
-                                    )
-                                )
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                              )
+                            )}
+                          </nav>
+                        </div>
 
-                  {/* Decoding Progress Bar */}
-                  <DecodingProgress
-                    progress={calculateDecodingProgress(image.items)}
-                  />
+                        {/* 아이템 리스트 */}
+                        <div className="space-y-3">
+                          {groupedItems[currentTab]?.map((itemDoc, index) => (
+                            <div
+                              key={index}
+                              className="group flex items-center gap-4 bg-[#1A1A1A] p-4 hover:bg-[#222222] transition-colors border border-zinc-800 rounded-lg"
+                            >
+                              {/* 아이템 이미지 */}
+                              <div className="w-16 h-16 rounded-lg flex-shrink-0 overflow-hidden">
+                                {itemDoc.item.item.imgUrl ? (
+                                  <img
+                                    src={itemDoc.item.item.imgUrl}
+                                    alt="아이템 이미지"
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-[#1A1A1A]/[0.5] flex items-center justify-center">
+                                    <svg
+                                      className="w-8 h-8 text-zinc-400"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* 아이템 정보 */}
+                              <div className="flex-1 min-w-0">
+                                {/* 서브 카테고리 */}
+                                <div className="text-xs text-zinc-400 uppercase tracking-wide mt-0.5">
+                                  {itemDoc.item.item.metadata.itemSubClass}
+                                </div>
+                                {/* 메인 카테고리 정보 */}
+                                <div className="text-sm font-medium text-[#EAFD66]">
+                                  {itemDoc.item.item.metadata.category?.toUpperCase() ||
+                                    itemDoc.item.item.metadata.subCategory?.toUpperCase() ||
+                                    itemDoc.item.item.metadata.productType?.toUpperCase() ||
+                                    "UNKNOWN"}
+                                </div>
+                              </div>
+
+                              {/* 제공 버튼 */}
+                              <button
+                                onClick={() =>
+                                  handleProvideClick(
+                                    image.docId,
+                                    artistId,
+                                    index,
+                                    itemDoc
+                                  )
+                                }
+                                className="px-4 py-2 text-zinc-400 hover:text-white rounded-lg font-medium text-base transition-colors hover:bg-zinc-800"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 5l7 7-7 7"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ProvidePanel 슬라이드 */}
+                <div
+                  className={`
+    absolute top-0 left-full w-full h-full
+    transition-transform duration-300 ease-in-out
+    ${selectedItem ? "-translate-x-full" : "translate-x-0"}
+  `}
+                >
+                  {selectedItem && (
+                    <div className="h-full bg-[#111111]">
+                      <ProvidePanel
+                        isOpen={!!selectedItem}
+                        onClose={() => setSelectedItem(null)}
+                        imageDocId={selectedItem.imageId}
+                        item={selectedItem.item.item.item!}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-        {/* 제공 페이지 */}
-        <div
-          className={`absolute overflow-y-auto top-0 left-0 w-full h-full transform transition-transform duration-300 bg-[#111111] ${
-            isOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
-          {selectedItem && (
-            <div className="max-w-[1400px] mx-auto p-6">
-              <ProvidePanel
-                isOpen={isOpen}
-                onClose={() => setIsOpen(false)}
-                item={selectedItem?.item.item.item!}
-                onSubmit={handleProvideSubmit}
-              />
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
@@ -2096,7 +2006,7 @@ const MyPageSection = () => {
                       </h3>
 
                       {/* 페이지네이션 컨트롤 */}
-                      <div className="flex items-center justify-between px-2 py-1 bg-white rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between px-2 py-1 bg-[#1A1A1A] rounded-lg shadow-sm">
                         <button
                           onClick={() =>
                             handlePageChange(requestIndex, currentPage - 1)
@@ -2166,7 +2076,7 @@ const MyPageSection = () => {
                           return (
                             <div
                               key={item.itemDocId}
-                              className="border rounded-lg overflow-hidden bg-white shadow-sm"
+                              className="border rounded-lg overflow-hidden bg-[#1A1A1A] shadow-sm"
                             >
                               <button
                                 onClick={() =>
@@ -2328,25 +2238,23 @@ const MyPageSection = () => {
   );
 };
 
-const FinalizeSection = () => {
+const ConfirmSection = () => {
   const [items, setItems] = useState<ProvideItemInfoWithMetadata[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [finalizeItemRequest, setFinalizeItemRequest] =
-    useState<FinalizeItemRequest | null>(null);
-  const [hasFields, setHasFields] = useState<HasFields>({});
-  console.log("Finalize Section", hasFields);
-  console.log("Finalize Section", finalizeItemRequest);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmItemInfo, setConfirmItemInfo] =
+    useState<ConfirmItemInfo | null>(null);
+  const [hasFields, setHasFields] = useState<Record<string, HasFields>>({});
+  const [selectedFile, setSelectedFile] = useState<Record<string, File>>({});
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
-
+  const [labels, setLabels] = useState<string[]>([]);
+  console.log(confirmItemInfo);
   const toggleSelectItem = (
     itemDocId: string,
-    field: string,
-    action: "finalize" | "reset",
+    action: "confirm" | "reject",
     url?: string
   ) => {
-    const fieldId = `${itemDocId}-${field}`;
+    const fieldId = `${itemDocId}-${url}`;
 
     setSelectedItems((prev) => {
       const newSelectedItems = new Set(prev);
@@ -2358,110 +2266,73 @@ const FinalizeSection = () => {
       return newSelectedItems;
     });
 
-    setFinalizeItemRequest((prev) => {
-      const newRequest: FinalizeItemRequest = {
-        itemDocId,
-        finalizeFields: prev ? [...prev.finalizeFields] : [],
-        resetFields: prev ? [...(prev.resetFields || [])] : undefined,
-        saleInfoUrls: prev?.saleInfoUrls || undefined,
-        resetSaleInfoUrls: prev?.resetSaleInfoUrls || undefined,
+    setConfirmItemInfo((prev) => {
+      const newRequest: ConfirmItemInfo = {
+        approveUrls: prev ? [...(prev.approveUrls || [])] : undefined,
+        rejectUrls: prev ? [...(prev.rejectUrls || [])] : undefined,
+        additionalMetadata: prev?.additionalMetadata || undefined,
         base64Image: prev?.base64Image,
       };
 
-      if (field.startsWith("saleInfo-")) {
-        if (url) {
-          if (action === "finalize") {
-            // 리셋 URL 목록에서 제거
-            newRequest.resetSaleInfoUrls = newRequest.resetSaleInfoUrls?.filter(
-              (u) => u !== url
-            );
+      console.log("New Request =>", newRequest);
 
-            if (newRequest.saleInfoUrls?.includes(url)) {
-              newRequest.saleInfoUrls = newRequest.saleInfoUrls?.filter(
-                (u) => u !== url
-              );
-            } else {
-              newRequest.saleInfoUrls?.push(url);
-            }
-          } else {
-            // reset action
-            // 확정 URL 목록에서 제거
-            newRequest.saleInfoUrls = newRequest.saleInfoUrls?.filter(
-              (u) => u !== url
-            );
-
-            if (newRequest.resetSaleInfoUrls?.includes(url)) {
-              newRequest.resetSaleInfoUrls =
-                newRequest.resetSaleInfoUrls?.filter((u) => u !== url);
-            } else {
-              newRequest.resetSaleInfoUrls?.push(url);
-            }
-          }
-        }
-      } else {
-        if (action === "finalize") {
-          // 리셋 필드에서 제거
-          newRequest.resetFields = newRequest.resetFields?.filter(
-            (f) => f !== field
+      if (url) {
+        if (action === "confirm") {
+          newRequest.rejectUrls = newRequest.rejectUrls?.filter(
+            (u) => u !== url
           );
 
-          if (newRequest.finalizeFields?.includes(field)) {
-            newRequest.finalizeFields = newRequest.finalizeFields?.filter(
-              (f) => f !== field
+          if (newRequest.approveUrls?.some((u) => u.link === url)) {
+            newRequest.approveUrls = newRequest.approveUrls?.filter(
+              (u) => u.link !== url
             );
           } else {
-            newRequest.finalizeFields?.push(field);
+            newRequest.approveUrls?.push({ link: url, label: "" });
           }
         } else {
-          // 확정 필드에서 제거
-          newRequest.finalizeFields = newRequest.finalizeFields?.filter(
-            (f) => f !== field
+          newRequest.approveUrls = newRequest.approveUrls?.filter(
+            (u) => u.link !== url
           );
 
-          if (newRequest.resetFields?.includes(field)) {
-            newRequest.resetFields = newRequest.resetFields?.filter(
-              (f) => f !== field
+          if (newRequest.rejectUrls?.includes(url)) {
+            newRequest.rejectUrls = newRequest.rejectUrls?.filter(
+              (u) => u !== url
             );
           } else {
-            newRequest.resetFields?.push(field);
+            newRequest.rejectUrls?.push(url);
           }
         }
       }
 
-      return newRequest.finalizeFields?.length === 0 &&
-        newRequest.resetFields?.length === 0 &&
-        newRequest.saleInfoUrls?.length === 0 &&
-        newRequest.resetSaleInfoUrls?.length === 0
+      return newRequest.approveUrls?.length === 0 &&
+        newRequest.rejectUrls?.length === 0
         ? null
         : newRequest;
     });
   };
 
-  const fetchProvidedItems = async () => {
+  const fetchUnconfirmedItems = async () => {
     try {
       setSelectedItems(new Set());
-      setFinalizeItemRequest(null);
+      setConfirmItemInfo(null);
       const response = await networkManager.request(
-        "items/provided",
+        `admin/${sessionStorage.getItem("USER_DOC_ID")}/items/providable`,
         "GET",
         null
       );
+      setLabels(response.data.labels);
       const convertedData = response.data.items.map((item: any) => {
         return convertKeysToCamelCase(item);
       });
       setItems(convertedData);
-      setHasFields({
-        hasImage: convertedData.some((item: any) => item.hasFields.hasImage),
-        hasName: convertedData.some((item: any) => item.hasFields.hasName),
-        hasMaterial: convertedData.some(
-          (item: any) => item.hasFields.hasMaterial
-        ),
-        hasDesignedBy: convertedData.some(
-          (item: any) => item.hasFields.hasDesignedBy
-        ),
-        hasColor: convertedData.some((item: any) => item.hasFields.hasColor),
-      });
       console.log(convertedData);
+      convertedData.forEach((item: any) => {
+        setHasFields((prev) => ({
+          ...prev,
+          [item.itemDocId]: item.hasFields,
+        }));
+      });
+      console.log(hasFields);
     } catch (error) {
       console.error("아이템 정보를 불러오는데 실패했습니다:", error);
     } finally {
@@ -2470,30 +2341,33 @@ const FinalizeSection = () => {
   };
 
   useEffect(() => {
-    fetchProvidedItems();
+    fetchUnconfirmedItems();
   }, []);
 
-  const handleFinalize = async () => {
+  const handleConfirmItemInfo = async (itemDocId: string) => {
     setUploadLoading(true);
-    const converted = convertKeysToSnakeCase(finalizeItemRequest);
+    const converted = convertKeysToSnakeCase(confirmItemInfo);
     const fields = [];
-    console.log("Finalize Item Request", finalizeItemRequest);
-    if (finalizeItemRequest?.saleInfoUrls) {
-      fields.push("sale_info");
+    if (
+      confirmItemInfo?.approveUrls !== undefined &&
+      confirmItemInfo?.approveUrls.length == 0
+    ) {
+      confirmItemInfo.approveUrls = undefined;
     }
-    for (const field of converted.finalize_fields) {
-      const snakeCaseField = field.replace(
-        /[A-Z]/g,
-        (letter: string) => `_${letter.toLowerCase()}`
-      );
-      fields.push(snakeCaseField);
+    if (
+      confirmItemInfo?.rejectUrls !== undefined &&
+      confirmItemInfo?.rejectUrls.length == 0
+    ) {
+      confirmItemInfo.rejectUrls = undefined;
     }
-    converted.finalize_fields = fields;
-    console.log("Finalize Section", converted);
     try {
-      await networkManager.request("finalize/item", "POST", converted);
+      await networkManager.request(
+        `item/${itemDocId}/confirm`,
+        "POST",
+        converted
+      );
       alert("선택된 아이템이 확정되었습니다.");
-      fetchProvidedItems();
+      fetchUnconfirmedItems();
     } catch (error) {
       console.error("아이템 확정에 실패했습니다:", error);
       alert("아이템 확정에 실패했습니다.");
@@ -2507,13 +2381,16 @@ const FinalizeSection = () => {
       const buffer = await file.arrayBuffer();
       const base64Image = arrayBufferToBase64(buffer);
 
-      setSelectedFile(file);
+      setSelectedFile((prev) => ({
+        ...prev,
+        [itemDocId]: file,
+      }));
 
-      setFinalizeItemRequest((prev) => {
+      setConfirmItemInfo((prev) => {
         if (!prev) {
           return {
             itemDocId,
-            finalizeFields: [],
+            approveUrls: [],
             base64Image,
           };
         }
@@ -2526,6 +2403,18 @@ const FinalizeSection = () => {
       console.error("이미지 변환 실패:", error);
       alert("이미지 업로드에 실패했습니다.");
     }
+  };
+
+  const handLabelSelect = (link: string, label: string) => {
+    setConfirmItemInfo((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        approveUrls: prev.approveUrls?.map((url) =>
+          url.link === link ? { ...url, label } : url
+        ),
+      };
+    });
   };
 
   if (isLoading) {
@@ -2543,7 +2432,7 @@ const FinalizeSection = () => {
           아이템 정보 확정
         </h2>
         <button
-          onClick={fetchProvidedItems}
+          onClick={fetchUnconfirmedItems}
           className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors"
         >
           불러오기
@@ -2579,7 +2468,7 @@ const FinalizeSection = () => {
           {items.map((item) => (
             <div
               key={item.itemDocId}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200"
+              className="bg-[#222222] rounded-xl shadow-sm border border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-200"
             >
               <div className="p-6 space-y-4">
                 <div className="relative w-full aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
@@ -2588,15 +2477,17 @@ const FinalizeSection = () => {
                       htmlFor={`image-upload-${item.itemDocId}`}
                       className="inset-0 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
                     >
-                      {selectedFile ? (
+                      {selectedFile[item.itemDocId] ? (
                         <div className="relative w-full h-full aspect-square">
                           <img
-                            src={URL.createObjectURL(selectedFile)}
+                            src={URL.createObjectURL(
+                              selectedFile[item.itemDocId]
+                            )}
                             alt="Preview"
                             className="object-cover w-full h-full rounded-lg aspect-square"
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity">
-                            <button className="px-4 py-2 bg-white rounded-md shadow-sm text-sm font-medium text-gray-700">
+                            <button className="px-4 py-2 bg-[#1A1A1A] rounded-md shadow-sm text-sm font-medium text-gray-700">
                               이미지 변경
                             </button>
                           </div>
@@ -2622,102 +2513,59 @@ const FinalizeSection = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  {item.provideItemInfo.brand?.value && (
-                    <div className="flex items-center text-sm">
-                      <span className="w-20 text-gray-500">브랜드</span>
-                      <span className="text-gray-900 flex-1">
-                        {item.brandName}
-                      </span>
-                      <div className="flex gap-2 ml-2">
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(
-                              item.itemDocId,
-                              "brand",
-                              "finalize"
-                            )
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.finalizeFields?.includes(
-                              "brand"
-                            )
-                              ? "bg-green-100 text-green-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleSelectItem(item.itemDocId, "brand", "reset")
-                          }
-                          className={`p-1.5 rounded-full transition-colors ${
-                            finalizeItemRequest?.resetFields?.includes("brand")
-                              ? "bg-red-100 text-red-600"
-                              : "hover:bg-gray-100 text-gray-400"
-                          }`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {item.provideItemInfo.saleInfo &&
-                    item.provideItemInfo.saleInfo.length > 0 && (
+                  {item.unconfirmedLinks &&
+                    item.unconfirmedLinks.length > 0 && (
                       <div className="space-y-2">
-                        {item.provideItemInfo.saleInfo.map((sale, index) => (
+                        {item.unconfirmedLinks.map((link, index) => (
                           <div
                             key={index}
                             className="flex items-center text-sm gap-2"
                           >
-                            <span className="text-gray-500 w-20">
-                              판매 링크
-                            </span>
+                            <span className="text-gray-500">{index + 1}</span>
                             <a
-                              href={sale.value}
+                              href={link}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 hover:underline flex-1"
                             >
-                              링크 {index + 1}
+                              아이템 링크
                             </a>
+                            {confirmItemInfo?.approveUrls?.some(
+                              (url) => url.link === link
+                            ) && (
+                              <select
+                                value={
+                                  confirmItemInfo?.approveUrls?.find(
+                                    (url) => url.link === link
+                                  )?.label || ""
+                                }
+                                onChange={(e) =>
+                                  handLabelSelect(link, e.target.value)
+                                }
+                                className="text-xs px-2 py-1 rounded border border-gray-700 bg-[#1A1A1A] text-gray-700 w-full max-w-[120px]"
+                              >
+                                <option value="" disabled>
+                                  라벨 선택
+                                </option>
+                                {labels.map((label) => (
+                                  <option key={label} value={label}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                             <div className="flex gap-2 ml-2">
                               <button
                                 onClick={() =>
                                   toggleSelectItem(
                                     item.itemDocId,
-                                    `saleInfo-${index}`,
-                                    "finalize",
-                                    sale.value
+                                    "confirm",
+                                    link
                                   )
                                 }
                                 className={`p-1.5 rounded-full transition-colors ${
-                                  finalizeItemRequest?.saleInfoUrls?.includes(
-                                    sale.value
+                                  confirmItemInfo?.approveUrls?.some(
+                                    (url) => url.link === link
                                   )
                                     ? "bg-green-100 text-green-600"
                                     : "hover:bg-gray-100 text-gray-400"
@@ -2741,15 +2589,12 @@ const FinalizeSection = () => {
                                 onClick={() =>
                                   toggleSelectItem(
                                     item.itemDocId,
-                                    `saleInfo-${index}`,
-                                    "reset",
-                                    sale.value
+                                    "reject",
+                                    link
                                   )
                                 }
                                 className={`p-1.5 rounded-full transition-colors ${
-                                  finalizeItemRequest?.resetSaleInfoUrls?.includes(
-                                    sale.value
-                                  )
+                                  confirmItemInfo?.rejectUrls?.includes(link)
                                     ? "bg-red-100 text-red-600"
                                     : "hover:bg-gray-100 text-gray-400"
                                 }`}
@@ -2775,28 +2620,28 @@ const FinalizeSection = () => {
                     )}
                 </div>
                 <AdditionalFieldsForm
-                  hasFields={hasFields}
+                  hasFields={hasFields[item.itemDocId]}
                   onUpdate={(fields) => {
-                    setFinalizeItemRequest((prev) => {
+                    setConfirmItemInfo((prev) => {
                       if (prev) {
                         return {
                           ...prev,
-                          additionalProvideFields: fields,
+                          additionalMetadata: fields,
                         };
                       } else {
                         return {
                           itemDocId: item.itemDocId,
-                          finalizeFields: [],
-                          additionalProvideFields: fields,
+                          approveUrls: [],
+                          additionalMetadata: fields,
                         };
                       }
                     });
-                    console.log("Additional Fields", finalizeItemRequest);
+                    console.log("Additional Fields", confirmItemInfo);
                   }}
                 />
                 <div className="flex justify-end">
                   <button
-                    onClick={handleFinalize}
+                    onClick={() => handleConfirmItemInfo(item.itemDocId)}
                     disabled={uploadLoading}
                     className={`
                       px-4 py-2 rounded-md shadow-sm
@@ -2811,7 +2656,7 @@ const FinalizeSection = () => {
                   >
                     {uploadLoading ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-gray-700 border-t-transparent rounded-full animate-spin" />
                         <span>처리중</span>
                       </div>
                     ) : (
@@ -2833,64 +2678,230 @@ const AdditionalFieldsForm = ({
   onUpdate,
 }: {
   hasFields: HasFields;
-  onUpdate: (fields: AdditionalProvideFields) => void;
+  onUpdate: (fields: AdditionalMetadata) => void;
 }) => {
-  const [fields, setFields] = useState<AdditionalProvideFields>({});
+  const [fields, setFields] = useState<AdditionalMetadata>({});
+  const [brandQuery, setBrandQuery] = useState("");
+  const [showBrandRequest, setShowBrandRequest] = useState(false);
+  const [filteredBrands, setFilteredBrands] = useState<
+    { name: { ko: string; en: string }; docId: string }[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [brands, setBrands] = useState<
+    { name: { ko: string; en: string }; docId: string }[]
+  >([]);
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await networkManager.request("brand/all", "GET", null);
+        const brand_docs = response.data.brands;
+        setBrands(
+          brand_docs.map((brand: any) => ({
+            name: { ko: brand.name.ko, en: brand.name.en },
+            docId: brand._id,
+          }))
+        );
+      } catch (error) {
+        console.error("브랜드 목록을 불러오는데 실패했습니다:", error);
+      }
+    };
+
+    fetchBrands();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updatedFields = { ...fields, [name]: value };
     if (value === "") {
-      delete updatedFields[name as keyof AdditionalProvideFields];
+      delete updatedFields[name as keyof AdditionalMetadata];
     }
     setFields(updatedFields);
     onUpdate(updatedFields);
   };
 
+  const handleBrandSearch = (query: string) => {
+    setBrandQuery(query);
+    if (query.length > 0) {
+      const filtered = brands.filter(
+        (brand) =>
+          brand.name.ko.toLowerCase().includes(query.toLowerCase()) ||
+          brand.name.en.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredBrands(filtered);
+    } else {
+      setFilteredBrands([]);
+    }
+  };
+
+  const handleBrandRequest = async () => {
+    if (!brandQuery.trim()) return;
+
+    setIsLoading(true);
+    try {
+      await networkManager.request(
+        "request/brand?name=" + brandQuery,
+        "POST",
+        null
+      );
+      alert("브랜드 요청이 완료되었습니다.");
+      setShowBrandRequest(false);
+    } catch (error) {
+      console.error("브랜드 요청에 실패했습니다:", error);
+      alert("브랜드 요청에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-4 bg-gray-100 rounded-lg">
-      <h3 className="text-lg font-bold mb-2">추가 정보 입력</h3>
-      <div className="space-y-2">
-        {!hasFields.hasName && (
-          <input
-            type="text"
-            name="name"
-            placeholder="아이템 이름"
-            value={fields.name || ""}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
-        )}
-        {!hasFields.hasMaterial && (
-          <input
-            type="text"
-            name="material"
-            placeholder="소재"
-            value={fields.material || ""}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
-        )}
-        {!hasFields.hasDesignedBy && (
-          <input
-            type="text"
-            name="designedBy"
-            placeholder="디자이너"
-            value={fields.designedBy || ""}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
-        )}
-        {!hasFields.hasColor && (
-          <input
-            type="text"
-            name="color"
-            placeholder="색상"
-            value={fields.color || ""}
-            onChange={handleChange}
-            className="w-full p-2 border rounded"
-          />
-        )}
+      {/* 브랜드 검색 */}
+      {!hasFields.hasBrand && (
+        <div>
+          <h2 className="text-lg font-bold mb-2">브랜드 검색하기</h2>
+          <div className="relative">
+            <input
+              type="text"
+              value={brandQuery}
+              onChange={(e) => handleBrandSearch(e.target.value)}
+              placeholder="브랜드 이름을 입력해주세요."
+              className="w-full p-2 border rounded"
+            />
+
+            {/* 검색 결과 드롭다운 */}
+            {filteredBrands.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-[#1A1A1A] border rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredBrands.map((brand, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setFields((prev) => ({
+                        ...prev,
+                        brand: brand.docId,
+                      }));
+                      onUpdate({ ...fields, brand: brand.docId });
+                      setBrandQuery(brand.name.ko);
+                      setFilteredBrands([]);
+                    }}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-100 transition-colors"
+                  >
+                    <>
+                      {brand.name.ko}
+                      <span className="text-gray-500 ml-2">
+                        ({brand.name.en})
+                      </span>
+                    </>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* 브랜드가 검색되지 않을 때 요청 버튼 */}
+            {brandQuery && filteredBrands.length === 0 && !showBrandRequest && (
+              <button
+                onClick={() => setShowBrandRequest(true)}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              >
+                브랜드 추가
+              </button>
+            )}
+          </div>
+
+          {/* 브랜드 요청 폼 */}
+          {showBrandRequest && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+              <h4 className="font-medium mb-2">브랜드 추가 요청</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                요청하신 브랜드는 검토 후 추가됩니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBrandRequest}
+                  disabled={isLoading}
+                  className={`px-4 py-2 text-white rounded ${
+                    isLoading ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  {isLoading ? "요청 중..." : "요청하기"}
+                </button>
+                <button
+                  onClick={() => setShowBrandRequest(false)}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 추가 정보 입력 */}
+      <div className="mt-4">
+        <h2 className="text-lg font-bold mb-2">추가 정보 입력</h2>
+        <div className="space-y-2">
+          {!hasFields.hasName && (
+            <input
+              type="text"
+              name="name"
+              placeholder="아이템 이름"
+              value={fields.name || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+          {!hasFields.hasBrand && (
+            <input
+              type="text"
+              name="brand"
+              placeholder="브랜드"
+              value={fields.brand || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+          {!hasFields.hasDescription && (
+            <input
+              type="text"
+              name="description"
+              placeholder="아이템 설명"
+              value={fields.description || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+          {!hasFields.hasMaterial && (
+            <input
+              type="text"
+              name="material"
+              placeholder="소재"
+              value={fields.material || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+          {!hasFields.hasDesignedBy && (
+            <input
+              type="text"
+              name="designedBy"
+              placeholder="디자이너"
+              value={fields.designedBy || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+          {!hasFields.hasColor && (
+            <input
+              type="text"
+              name="color"
+              placeholder="색상"
+              value={fields.color || ""}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          )}
+        </div>
       </div>
     </div>
   );
