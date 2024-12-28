@@ -1,13 +1,6 @@
-import { BrandInfo, ArtistInfo } from "@/types/model";
 import { convertKeysToSnakeCase } from "@/utils/util";
-import { FirebaseApp } from "firebase/app";
-import { getStorage } from "firebase/storage";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
-import {
-  generateRandomness,
-  generateNonce,
-  jwtToAddress,
-} from "@mysten/zklogin";
+import { generateRandomness, generateNonce } from "@mysten/zklogin";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import axios from "axios";
 
