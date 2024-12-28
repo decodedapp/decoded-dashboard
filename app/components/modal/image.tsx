@@ -369,7 +369,7 @@ export const ImagePreviewModal = ({
       }`}
     >
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-        <div className="bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-2xl">
+        <div className="bg-[#1A1A1A] rounded-lg shadow-xl overflow-hidden w-full max-w-2xl">
           <div className="p-6">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
@@ -419,15 +419,15 @@ export const ImagePreviewModal = ({
               {Object.values(editedRequestedItems || {}).map((item, index) => (
                 <div
                   key={`${index}`}
-                  className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+                  className="bg-[#1A1A1A] border border-gray-400 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
                 >
-                  <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-400">
                     <div className="w-8 h-8 bg-blue-500 bg-opacity-10 rounded-lg flex items-center justify-center">
                       <span className="text-blue-600 font-semibold">
                         {index + 1}
                       </span>
                     </div>
-                    <h4 className="font-medium text-gray-900">
+                    <h4 className="font-medium text-gray-400">
                       아이템 {index + 1}
                     </h4>
                   </div>
@@ -439,7 +439,7 @@ export const ImagePreviewModal = ({
                         <input
                           type="text"
                           placeholder="아티스트 검색..."
-                          className="w-full px-3 py-2 border rounded-md text-black"
+                          className="w-full px-3 py-2 border rounded-md text-gray-400 bg-[#1A1A1A]"
                           onChange={(e) =>
                             handleSearchChange(index, e.target.value)
                           }
@@ -538,13 +538,13 @@ export const ImagePreviewModal = ({
                                 </button>
                               ) : (
                                 <div className="max-w-md mx-auto p-4 border rounded-lg">
-                                  <h3 className="font-bold mb-3 text-black">
+                                  <h3 className="font-bold mb-3 text-gray-400">
                                     셀럽 추가 요청
                                   </h3>
                                   <input
                                     type="text"
                                     placeholder="셀럽 이름"
-                                    className="w-full p-2 border rounded mb-2 text-black"
+                                    className="w-full p-2 border rounded mb-2 text-gray-400 bg-[#1A1A1A]"
                                     value={newIdentity.name}
                                     onChange={(e) =>
                                       setNewIdentity({
@@ -554,7 +554,7 @@ export const ImagePreviewModal = ({
                                     }
                                   />
                                   <select
-                                    className="w-full p-2 border rounded mb-4 text-black"
+                                    className="w-full p-2 border rounded mb-4 text-gray-400 bg-[#1A1A1A]"
                                     value={newIdentity.category}
                                     onChange={(e) =>
                                       setNewIdentity({

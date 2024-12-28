@@ -102,12 +102,12 @@ export const IdentityModal = ({
   return (
     <dialog
       id={`identity_modal_${id}`}
-      className="modal flex flex-col w-[90vw] max-w-4xl h-[90vh] p-6 bg-white rounded-lg left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-auto"
+      className="modal flex flex-col w-[90vw] max-w-4xl h-[90vh] p-6 bg-[#1A1A1A] rounded-lg left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-y-auto"
     >
       <div className="flex flex-col space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-400 pb-4">
+          <h2 className="text-lg font-semibold text-gray-400">
             아이덴티티 정보 수정
           </h2>
           <button
@@ -138,7 +138,7 @@ export const IdentityModal = ({
 
         {/* Profile Image */}
         <div className="space-y-4">
-          <p className="text-sm font-medium text-gray-700">프로필 이미지</p>
+          <p className="text-sm font-medium text-gray-400">프로필 이미지</p>
           <div
             className="relative flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer"
             style={{ aspectRatio: "1 / 1" }}
@@ -150,7 +150,7 @@ export const IdentityModal = ({
                 className="absolute inset-0 object-cover w-full h-full rounded-lg"
               />
             )}
-            <label className="flex flex-col items-center justify-center w-full h-full opacity-0 hover:opacity-100 transition-opacity duration-150 ease-in-out">
+            <label className="flex flex-col items-center justify-center w-full h-full opacity-0 bg-black/50 hover:opacity-100 transition-opacity duration-150 ease-in-out ">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <svg
                   className="w-10 h-10 mb-3 text-gray-400"
