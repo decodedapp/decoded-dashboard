@@ -452,21 +452,6 @@ const ImageRequestSection = () => {
                 이미지
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                아티스트명
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                제목
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                설명
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                스타일
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                요청 아이템
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 요청일
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -477,7 +462,7 @@ const ImageRequestSection = () => {
           <tbody className="bg-[#222222] divide-y divide-gray-700">
             {imageRequests?.map((request, index) => (
               <React.Fragment key={index}>
-                <tr key={index} className="cursor-pointer hover:bg-gray-50">
+                <tr key={index} className="cursor-pointer hover:bg-black/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="h-20 w-16 relative">
                       <Image
@@ -489,43 +474,7 @@ const ImageRequestSection = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {request.metadata.subject}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {request.doc.title}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 max-w-xs truncate">
-                      {request.doc.description || "-"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {request.doc.style || "-"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {request.doc.requestedItems ? (
-                        Object.values(request.doc.requestedItems)
-                          .flat()
-                          .map((item: any, i: number) => (
-                            <div key={i} className="mb-1">
-                              {item.itemClass} - {item.itemSubClass} -
-                              {item.category}
-                            </div>
-                          ))
-                      ) : (
-                        <div className="text-gray-500">요청된 아이템 없음</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-gray-400">
                       {new Date(request.requestedAt).toLocaleDateString()}
                     </div>
                   </td>
@@ -719,9 +668,6 @@ const ArtistRequestSection = () => {
                 이름
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                카테고리
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 요청일
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -734,9 +680,6 @@ const ArtistRequestSection = () => {
               <tr key={index}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {artist.doc.name?.ko || "미지정"}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {artist.doc.category || "미지정"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {new Date(artist.requested_at).toLocaleDateString()}
@@ -836,9 +779,6 @@ const BrandRequestSection = () => {
                 요청일
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                상태
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 작업
               </th>
             </tr>
@@ -873,24 +813,6 @@ const BrandRequestSection = () => {
                         day: "numeric",
                       }
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${
-                          request.status === "approved"
-                            ? "bg-green-100 text-green-800"
-                            : request.status === "rejected"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                    >
-                      {request.status === "approved"
-                        ? "승인됨"
-                        : request.status === "rejected"
-                        ? "거절됨"
-                        : "대기중"}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex space-x-2">
