@@ -71,9 +71,9 @@ const AdminDashboard = () => {
   if (!isAdmin) {
     return (
       <div className="h-[50vh]">
-        <div className="max-w-md w-full space-y-8 p-6 bg-[#1A1A1A] rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="max-w-md w-full space-y-8 p-6 bg-[#070707] rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="text-center mb-4">
-            <h2 className="text-3xl font-bold text-gray-900">관리자 로그인</h2>
+            <h2 className="text-3xl font-bold text-gray-400">관리자 로그인</h2>
             <p className="mt-2 text-sm text-gray-600">
               계속하려면 관리자 계정으로 로그인해주세요
             </p>
@@ -90,13 +90,13 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="[h-50vh] bg-[#1A1A1A]">
+    <div className="[h-50vh] bg-[#070707]">
       {/* Header */}
-      <div className="bg-[#1A1A1A]] shadow-sm">
+      <div className="bg-[#070707]] shadow-sm">
         <div className="max-w-7xl mx-auto">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
             <h1
-              className="text-2xl font-bold text-white"
+              className="text-2xl font-bold text-gray-400"
               onClick={() => setIsAdmin(false)}
             >
               관리자 대시보드
@@ -106,7 +106,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="mt-4 border-b border-gray-200">
+      <div className="mt-4 border-b border-gray-800">
         <nav className="-mb-px flex space-x-8 justify-center">
           {tabs.map((tab) => (
             <button
@@ -150,8 +150,8 @@ const RequestProvideSection = () => {
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
             selectedTab === "request"
-              ? "bg-[#1A1A1A] text-white"
-              : "text-gray-700 hover:bg-gray-50"
+              ? "bg-[#1A1A1A] text-gray-400"
+              : "text-gray-400 hover:bg-black/50"
           }
         `}
             onClick={() => setSelectedTab("request")}
@@ -178,8 +178,8 @@ const RequestProvideSection = () => {
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
             selectedTab === "provide"
-              ? "bg-[#1A1A1A] text-white"
-              : "text-gray-700 hover:bg-gray-50"
+              ? "bg-[#181818] text-gray-400"
+              : "text-gray-400 hover:bg-black/50"
           }
         `}
             onClick={() => setSelectedTab("provide")}
@@ -206,10 +206,9 @@ const RequestProvideSection = () => {
           py-4 text-center text-sm font-medium transition-all duration-200
           ${
             selectedTab === "myPage"
-              ? "bg-black text-white"
-              : "text-gray-700 hover:bg-gray-50"
+              ? "bg-[#1A1A1A] text-gray-400"
+              : "text-gray-400 hover:bg-black/50"
           }
-          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-black
         `}
             onClick={() => setSelectedTab("myPage")}
           >
@@ -237,7 +236,7 @@ const RequestProvideSection = () => {
       <div className="mt-6">
         <div
           className={`
-      bg-[#222222] rounded-lg shadow
+      bg-[#131313] rounded-lg shadow
       ${selectedTab === "request" ? "block" : "hidden"}
     `}
         >
@@ -245,7 +244,7 @@ const RequestProvideSection = () => {
         </div>
         <div
           className={`
-      bg-[#222222] rounded-lg shadow
+      bg-[#131313] rounded-lg shadow
       ${selectedTab === "provide" ? "block" : "hidden"}
     `}
         >
@@ -253,7 +252,7 @@ const RequestProvideSection = () => {
         </div>
         <div
           className={`
-      bg-[#222222] rounded-lg shadow
+      bg-[#131313] rounded-lg shadow
       ${selectedTab === "myPage" ? "block" : "hidden"}
     `}
         >
@@ -411,11 +410,13 @@ const ImageRequestSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">이미지 요청 목록</h2>
+        <h2 className="text-lg font-semibold text-gray-400">
+          이미지 요청 목록
+        </h2>
         <button
           onClick={fetchImageRequests}
           disabled={isLoading}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 focus:outline-none disabled:bg-gray-400"
         >
           {isLoading ? (
             <>
@@ -677,11 +678,13 @@ const ArtistRequestSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">아티스트 요청 목록</h2>
+        <h2 className="text-lg font-semibold text-gray-400">
+          아티스트 요청 목록
+        </h2>
         <button
           onClick={fetchArtistRequests}
           disabled={isLoading}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:bg-gray-400"
         >
           {isLoading ? (
             <>
@@ -819,10 +822,12 @@ const BrandRequestSection = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <h2 className="text-lg font-semibold mb-4">브랜드 요청 목록</h2>
+      <h2 className="text-lg font-semibold mb-4 text-gray-400">
+        브랜드 요청 목록
+      </h2>
       <div className="bg-[#1A1A1A] shadow rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-700">
+          <thead className="bg-[#1A1A1A]">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 브랜드명
@@ -1008,8 +1013,8 @@ const RequestSection = () => {
         transition-all duration-200
         ${
           isStepComplete
-            ? "bg-black text-white hover:bg-gray-800"
-            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            ? "bg-[#1A1A1A] text-gray-400 hover:bg-black/50"
+            : "bg-[#1A1A1A] text-gray-400 cursor-not-allowed"
         }
       `}
     >
@@ -1021,7 +1026,7 @@ const RequestSection = () => {
   const PrevButton = () => (
     <button
       onClick={() => setCurrentStep((prev) => prev - 1)}
-      className="px-6 py-2 rounded-md text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200"
+      className="px-6 py-2 rounded-md text-sm font-medium text-gray-400 bg-[#1A1A1A] hover:bg-black/50"
     >
       이전
     </button>
@@ -1030,33 +1035,48 @@ const RequestSection = () => {
   const StepIndicator = () => (
     <div className="w-full mb-20">
       <div className="relative pt-1">
-        <div className="absolute top-5 w-full">
-          <div className="h-1 bg-gray-100">
-            <div
-              className="h-1 bg-[#EAFD66] transition-all duration-500"
-              style={{
-                width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
-              }}
-            ></div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          {[...Array(totalSteps)].map((_, index) => (
-            <div key={index} className="relative">
+        {/* 프로그레스 바 컨테이너 - 너비 제한 */}
+        <div className="max-w-[120px] mx-auto relative">
+          {/* 프로그레스 바 */}
+          <div className="absolute top-[11px] w-full">
+            <div className="h-[2px] bg-[#070707]">
               <div
-                className={`
-                w-10 h-10 rounded-full flex items-center justify-center
-                ${
-                  currentStep > index + 1
-                    ? "bg-black text-white"
-                    : currentStep === index + 1
-                    ? "bg-[#EAFD66]"
-                    : "bg-gray-200"
-                }
-              `}
-              ></div>
+                className="h-[2px] bg-[#EAFD66] transition-all duration-500 relative"
+                style={{
+                  width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%`,
+                }}
+              />
             </div>
-          ))}
+          </div>
+
+          {/* 스텝 마커들 */}
+          <div className="flex items-center justify-between">
+            {[...Array(totalSteps)].map((_, index) => (
+              <div key={index} className="relative">
+                {/* 현재 스텝의 링 애니메이션 */}
+                {currentStep === index + 1 && (
+                  <>
+                    <div className="absolute -inset-1 rounded-full border-2 border-[#EAFD66]/30 animate-ping" />
+                    <div className="absolute -inset-1 rounded-full border-2 border-[#EAFD66]/30" />
+                  </>
+                )}
+
+                {/* 스텝 마커 */}
+                <div
+                  className={`
+                    w-5 h-5 rounded-full 
+                    ${
+                      index + 1 < currentStep
+                        ? "bg-[#EAFD66]" // 완료된 스텝
+                        : index + 1 === currentStep
+                        ? "bg-[#EAFD66]" // 현재 스텝
+                        : "border-[2.5px] border-[#333333] bg-transparent" // 미완료 스텝
+                    }
+                  `}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -1095,7 +1115,9 @@ const RequestSection = () => {
     return (
       <div className="space-y-8">
         <div className="max-w-md mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-2">사진을 업로드해주세요</h2>
+          <h2 className="text-3xl font-bold mb-2 text-gray-400">
+            사진을 업로드해주세요
+          </h2>
           <p className="text-gray-500">
             아이템 식별에 도움이 될 만한 선명한 사진을 올려주세요
           </p>
@@ -1164,7 +1186,7 @@ const RequestSection = () => {
 
                 <button
                   onClick={() => inputRef.current?.click()}
-                  className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  className="px-4 py-2 text-sm text-gray-600 border border-gray-700 rounded-lg hover:bg-gray-100"
                 >
                   컴퓨터에서 선택
                 </button>
@@ -1211,7 +1233,7 @@ const RequestSection = () => {
 
         {/* Help Section */}
         <div className="max-w-md mx-auto">
-          <div className="bg-yellow-50 rounded-lg p-4">
+          <div className="bg-[#1A1A1A] rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg
@@ -1273,7 +1295,7 @@ const RequestSection = () => {
 
     return (
       <div className="space-y-8">
-        <h2 className="text-3xl font-bold text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-400 text-center mb-8">
           궁금한 아이템을 선택해주세요
         </h2>
 
@@ -1281,21 +1303,21 @@ const RequestSection = () => {
           <p className="text-sm">
             이미지를 클릭하여 궁금한 아이템의 위치를 표시해주세요
           </p>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="font-medium text-gray-900">필수 입력사항</p>
+          <div className="bg-[#1A1A1A] rounded-lg p-4">
+            <p className="font-medium text-gray-400">필수 입력사항</p>
             <div className="mt-2 flex items-start space-x-2">
-              <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-full bg-[#1A1A1A] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
                 1
               </div>
               <div>
-                <p className="font-medium text-gray-900">아이템 선택</p>
+                <p className="font-medium text-gray-400">아이템 선택</p>
                 <p className="text-gray-600 text-sm">
                   최소 1개 이상의 아이템을 선택해주세요
                 </p>
               </div>
             </div>
           </div>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+          <div className="bg-[#1A1A1A] rounded-lg p-3 text-sm text-gray-400">
             <p className="font-medium">주의사항</p>
             <ul className="mt-1 text-xs space-y-1 list-disc list-inside">
               <li>최소 1개 이상의 아이템을 선택해야 합니다</li>
@@ -1328,9 +1350,9 @@ const RequestSection = () => {
                   style={{ left: `${point.x}%`, top: `${point.y}%` }}
                 >
                   <div className="relative">
-                    <div className="absolute w-6 h-6 animate-ping rounded-full bg-blue-400 opacity-75"></div>
-                    <div className="relative w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                      <span className="text-xs text-white font-bold">
+                    <div className="absolute w-4 h-4 animate-ping rounded-full bg-[#EAFD66] opacity-75"></div>
+                    <div className="relative w-4 h-4 rounded-full bg-[#EAFD66] flex items-center justify-center">
+                      <span className="text-xs text-black font-bold">
                         {index + 1}
                       </span>
                     </div>
@@ -1359,18 +1381,15 @@ const RequestSection = () => {
                 {points.map((point, index) => (
                   <div
                     key={index}
-                    className="bg-gray-50 rounded-lg overflow-hidden"
+                    className="bg-[#1A1A1A] rounded-lg overflow-hidden"
                   >
                     {/* 헤더 부분 */}
-                    <div className="p-3 flex items-center justify-between border-b border-gray-200">
+                    <div className="p-3 flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <span className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                          <span className="text-xs text-white font-bold">
+                        <span className="w-4 h-4 rounded-full bg-[#EAFD66] flex items-center justify-center">
+                          <span className="text-xs text-black font-bold rounded-full p-1">
                             {index + 1}
                           </span>
-                        </span>
-                        <span className="text-gray-600">
-                          아이템 {index + 1}
                         </span>
                       </div>
                       <button
@@ -1401,7 +1420,7 @@ const RequestSection = () => {
                         onChange={(e) =>
                           updatePointContext(index, e.target.value)
                         }
-                        className="w-full text-sm p-2 border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full text-sm p-2 rounded-md bg-[#1A1A1A] text-gray-400"
                         placeholder="이 아이템에 대한 추가 정보를 입력해주세요 (선택사항)"
                       />
                     </div>
@@ -1446,8 +1465,8 @@ const RequestSection = () => {
                   transition-all duration-200
                   ${
                     isStepComplete
-                      ? "bg-black text-white hover:bg-gray-800"
-                      : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      ? "bg-[#1A1A1A] text-[#EAFD66] hover:bg-black/50"
+                      : "bg-[#1A1A1A] text-gray-400 cursor-not-allowed"
                   }
                 `}
               >
@@ -1652,7 +1671,7 @@ const ProvideSection = () => {
                     }
                   `}
                                 >
-                                  {itemClass}
+                                  {itemClass.toUpperCase()}
                                   <span
                                     className={`ml-2 py-0.5 px-2 rounded-full text-xs
                       ${
@@ -1910,7 +1929,7 @@ const MyPageSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       {requests.length === 0 ? (
-        <div className="flex items-center justify-center min-h-[400px] bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-center min-h-[400px] bg-[#1A1A1A] rounded-lg">
           <div className="flex flex-col items-center justify-center space-y-3 px-4">
             <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
               아직 요청한 아이템이 없어요
@@ -2428,12 +2447,10 @@ const ConfirmSection = () => {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          아이템 정보 확정
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-400">아이템 정보 확정</h2>
         <button
           onClick={fetchUnconfirmedItems}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-gray-800 text-white rounded-md shadow-sm hover:bg-gray-700 transition-colors"
         >
           불러오기
         </button>
@@ -2471,7 +2488,7 @@ const ConfirmSection = () => {
               className="bg-[#222222] rounded-xl shadow-sm border border-gray-700 overflow-hidden hover:shadow-md transition-shadow duration-200"
             >
               <div className="p-6 space-y-4">
-                <div className="relative w-full aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <div className="relative w-full aspect-square bg-[#1A1A1A] rounded-lg">
                   {!hasFields.hasImage && (
                     <label
                       htmlFor={`image-upload-${item.itemDocId}`}
@@ -2647,8 +2664,8 @@ const ConfirmSection = () => {
                       px-4 py-2 rounded-md shadow-sm
                       ${
                         uploadLoading
-                          ? "bg-blue-400 cursor-not-allowed"
-                          : "bg-blue-500 hover:bg-blue-600"
+                          ? "bg-gray-800 cursor-not-allowed"
+                          : "bg-gray-800 hover:bg-gray-700"
                       }
                       text-white transition-colors
                       min-w-[80px] flex items-center justify-center
@@ -2754,23 +2771,25 @@ const AdditionalFieldsForm = ({
   };
 
   return (
-    <div className="p-4 bg-gray-100 rounded-lg">
+    <div className="p-4 bg-[#1A1A1A] rounded-lg">
       {/* 브랜드 검색 */}
       {!hasFields.hasBrand && (
         <div>
-          <h2 className="text-lg font-bold mb-2">브랜드 검색하기</h2>
+          <h2 className="text-lg text-gray-400 font-bold mb-2">
+            브랜드 검색하기
+          </h2>
           <div className="relative">
             <input
               type="text"
               value={brandQuery}
               onChange={(e) => handleBrandSearch(e.target.value)}
               placeholder="브랜드 이름을 입력해주세요."
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
 
             {/* 검색 결과 드롭다운 */}
             {filteredBrands.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-[#1A1A1A] border rounded-md shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-10 w-full mt-1 bg-[#1A1A1A] border border-gray-800 rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredBrands.map((brand, index) => (
                   <button
                     key={index}
@@ -2839,7 +2858,7 @@ const AdditionalFieldsForm = ({
 
       {/* 추가 정보 입력 */}
       <div className="mt-4">
-        <h2 className="text-lg font-bold mb-2">추가 정보 입력</h2>
+        <h2 className="text-lg text-gray-400 font-bold mb-2">추가 정보 입력</h2>
         <div className="space-y-2">
           {!hasFields.hasName && (
             <input
@@ -2848,7 +2867,7 @@ const AdditionalFieldsForm = ({
               placeholder="아이템 이름"
               value={fields.name || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
           {!hasFields.hasBrand && (
@@ -2858,7 +2877,7 @@ const AdditionalFieldsForm = ({
               placeholder="브랜드"
               value={fields.brand || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
           {!hasFields.hasDescription && (
@@ -2868,7 +2887,7 @@ const AdditionalFieldsForm = ({
               placeholder="아이템 설명"
               value={fields.description || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
           {!hasFields.hasMaterial && (
@@ -2878,7 +2897,7 @@ const AdditionalFieldsForm = ({
               placeholder="소재"
               value={fields.material || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
           {!hasFields.hasDesignedBy && (
@@ -2888,7 +2907,7 @@ const AdditionalFieldsForm = ({
               placeholder="디자이너"
               value={fields.designedBy || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
           {!hasFields.hasColor && (
@@ -2898,7 +2917,7 @@ const AdditionalFieldsForm = ({
               placeholder="색상"
               value={fields.color || ""}
               onChange={handleChange}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
           )}
         </div>
