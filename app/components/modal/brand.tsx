@@ -68,7 +68,7 @@ export const BrandModal = ({
     };
     console.log("uploadBrand", uploadBrand);
     await networkManager
-      .request(`upload/brand?request=${requestId}`, "POST", uploadBrand)
+      .request(`brand/upload/${requestId}`, "POST", uploadBrand)
       .then((_) => {
         alert("브랜드 업로드 성공");
         onComplete();

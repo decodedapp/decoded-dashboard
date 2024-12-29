@@ -91,17 +91,17 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
   return (
     <dialog
       id={`add_item_modal_${id}`}
-      className="modal fixed inset-0 w-[800px] max-h-[95vh] p-0 bg-white rounded-2xl m-auto"
+      className="modal fixed inset-0 w-[800px] max-h-[95vh] p-0 bg-[#1A1A1A] rounded-2xl m-auto"
     >
       <div className="flex flex-col w-full h-full overflow-y-scroll">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
-          <h2 className="text-lg font-medium text-gray-900">
+        <div className="flex items-center justify-between px-8 py-5">
+          <h2 className="text-lg font-medium text-gray-400">
             아이템 정보 요청
           </h2>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-full hover:bg-gray-400 transition-colors"
           >
             <svg
               className="w-5 h-5 text-gray-500"
@@ -213,7 +213,7 @@ const ImageArea = ({
 
 const Caution = () => {
   return (
-    <div className="flex mx-auto bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6 w-[600px]">
+    <div className="flex mx-auto bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mt-6 w-[600px]">
       <div className="flex items-start">
         <div className="flex-shrink-0">
           <svg
@@ -330,13 +330,13 @@ const RequestButton = ({
   handleAdd: (markers: Point[]) => void;
 }) => {
   return (
-    <div className="px-8 py-5 border-t border-gray-100">
+    <div className="px-8 py-5">
       <div className="max-w-[600px] mx-auto">
         <button
           onClick={() => handleAdd(newMarkers)}
           className={`
                 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200
-bg-black text-white hover:bg-gray-800
+bg-gray-400/10 text-gray-400 hover:bg-[#EAFD66]
               `}
         >
           요청하기 {newMarkers.length > 0 && `(${newMarkers.length})`}
