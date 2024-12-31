@@ -58,7 +58,7 @@ export class NetworkManager {
     return NetworkManager.instance;
   }
 
-  public async request(path: string, method: string, data: any) {
+  public async request(path: string, method: string, data: any = null) {
     try {
       const convertedData = convertKeysToSnakeCase(data);
       console.log(convertedData);

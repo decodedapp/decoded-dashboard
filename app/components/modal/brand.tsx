@@ -1,12 +1,7 @@
-import { useState } from "react";
-import { BrandInfo } from "@/types/model";
+import { useState, useEffect } from "react";
+import { BrandInfo, LinkInfo } from "@/types/model";
 import { networkManager } from "@/network/network";
 import { arrayBufferToBase64 } from "@/utils/util";
-
-enum SnsType {
-  Instagram = "instagram",
-  Youtube = "youtube",
-}
 
 export const BrandModal = ({
   id,
@@ -21,19 +16,22 @@ export const BrandModal = ({
     en: "",
     ko: "",
   });
-  const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [logoImage, setLogoImage] = useState<File>();
-  const [sns, setSns] = useState<Record<string, string>>({});
-  const handleSnsUrlChange =
-    (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSns({ ...sns, [type]: e.target.value });
+  const [linkInfo, setLinkInfo] = useState<LinkInfo[]>([]);
+  const [linkLabels, setLinkLabels] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchLinkLabels = async () => {
+      const response = await networkManager.request(`link/labels`, "GET");
+      setLinkLabels(response.data);
     };
+    fetchLinkLabels();
+  }, []);
 
   const defaultState = () => {
     setBrandName({ en: "", ko: "" });
-    setWebsiteUrl("");
     setLogoImage(undefined);
-    setSns({});
+    setLinkInfo([]);
   };
 
   const onComplete = () => {
@@ -47,18 +45,13 @@ export const BrandModal = ({
       return;
     }
 
-    if (!websiteUrl || !logoImage || !sns) {
-      alert("Brand category or creative director is not set!");
+    if (!logoImage) {
+      alert("Brand logo is not set!");
       return;
     }
-    const snsInfo = Object.entries(sns).map(([platform, url]) => ({
-      platform: platform,
-      url: url,
-    }));
     const newBrandInfo: BrandInfo = {
       name: brandName,
-      websiteUrl: websiteUrl,
-      snsInfo: snsInfo,
+      linkInfo: linkInfo,
     };
     const buf = await logoImage.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
@@ -82,12 +75,12 @@ export const BrandModal = ({
   return (
     <dialog
       id={`brand_modal_${id}`}
-      className="modal fixed inset-0 m-auto w-[90vw] h-[90vh] max-w-2xl p-6 bg-white rounded-lg shadow-xl"
+      className="modal fixed inset-0 m-auto w-[90vw] h-[90vh] max-w-2xl p-6 bg-[#1A1A1A] rounded-lg shadow-xl"
     >
       <div className="flex flex-col space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between pb-4">
+          <h2 className="text-lg font-semibold text-gray-400">
             브랜드 정보 수정
           </h2>
           <button
@@ -118,12 +111,12 @@ export const BrandModal = ({
 
         {/* Brand Name */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">브랜드명</p>
+          <p className="text-sm font-bold text-gray-400">브랜드명</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
               placeholder="영문 브랜드명"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="px-3 py-2 rounded-md bg-[#1A1A1A]"
               value={brandName.en}
               onChange={(e) =>
                 setBrandName({ ...brandName, en: e.target.value })
@@ -132,7 +125,7 @@ export const BrandModal = ({
             <input
               type="text"
               placeholder="한글 브랜드명"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="px-3 py-2  rounded-md bg-[#1A1A1A]"
               value={brandName.ko}
               onChange={(e) =>
                 setBrandName({ ...brandName, ko: e.target.value })
@@ -141,22 +134,10 @@ export const BrandModal = ({
           </div>
         </div>
 
-        {/* Website */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">웹사이트</p>
-          <input
-            type="text"
-            placeholder="웹사이트 URL"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-          />
-        </div>
-
         {/* Logo */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">로고</p>
-          <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+          <p className="text-sm font-bold text-gray-400">로고</p>
+          <div className="flex justify-center px-6 pt-5 pb-6 rounded-md">
             <div className="space-y-1 text-center">
               {logoImage ? (
                 <div className="relative w-24 h-24 mx-auto">
@@ -199,8 +180,8 @@ export const BrandModal = ({
                   />
                 </svg>
               )}
-              <div className="flex justify-center text-sm text-gray-600">
-                <label className="relative cursor-pointer rounded-md font-medium text-yellow-600 hover:text-yellow-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-yellow-500">
+              <div className="flex justify-center text-sm text-gray-400">
+                <label className="relative cursor-pointer rounded-md font-medium text-[#EAFD66] hover:text-[#EAFD66] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#EAFD66]">
                   <span>{logoImage ? "로고 변경" : "로고 업로드"}</span>
                   <input
                     type="file"
@@ -216,31 +197,81 @@ export const BrandModal = ({
           </div>
         </div>
 
-        {/* SNS */}
+        {/* Links */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">SNS 정보</p>
-          <div className="space-y-4">
-            {Object.values(SnsType).map((snsType) => (
-              <div key={snsType}>
-                <label className="block text-xs text-gray-500 mb-1">
-                  {snsType.toUpperCase()}
-                </label>
-                <input
-                  type="text"
-                  placeholder={`${snsType} URL을 입력하세요`}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  value={sns[snsType] || ""}
-                  onChange={handleSnsUrlChange(snsType)}
-                />
+          <p className="text-sm font-medium text-gray-700">링크 정보</p>
+          <div className="space-y-4 ">
+            {linkInfo.map((info, index) => (
+              <div
+                key={index}
+                className="space-y-2 border border-gray-700 rounded-lg p-4"
+              >
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    라벨
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
+                    value={info.label}
+                    onChange={(e) => {
+                      const newLinkInfo = [...linkInfo];
+                      newLinkInfo[index].label = e.target.value;
+                      setLinkInfo(newLinkInfo);
+                    }}
+                  >
+                    <option value="">선택</option>
+                    {linkLabels.map((label) => (
+                      <option key={label} value={label}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    className="w-full px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
+                    value={info.url}
+                    onChange={(e) => {
+                      const newLinkInfo = [...linkInfo];
+                      newLinkInfo[index].url = e.target.value;
+                      setLinkInfo(newLinkInfo);
+                    }}
+                    placeholder="URL을 입력하세요"
+                  />
+                </div>
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={() => {
+                    const newLinkInfo = linkInfo.filter((_, i) => i !== index);
+                    setLinkInfo(newLinkInfo);
+                  }}
+                  className="text-xs text-red-500 hover:text-red-600"
+                >
+                  삭제
+                </button>
               </div>
             ))}
+
+            {/* 추가 버튼 */}
+            <button
+              onClick={() => {
+                setLinkInfo([...linkInfo, { label: "", url: "" }]);
+              }}
+              className="w-full px-3 py-2 text-sm bg-[#2A2A2A] text-gray-400 rounded-md hover:bg-[#3A3A3A]"
+            >
+              + 링크 추가
+            </button>
           </div>
         </div>
 
         {/* Submit Button */}
         <button
           onClick={upload}
-          className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors duration-200"
+          className="w-full px-4 py-2 bg-[#EAFD66] text-black rounded-md hover:bg-[#EAFD66] transition-colors duration-200"
         >
           저장하기
         </button>

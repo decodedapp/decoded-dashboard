@@ -47,6 +47,7 @@ export const ImagePreviewModal = ({
     {}
   );
   const [identities, setIdentities] = useState<IdentityDocument[]>([]);
+  const [identityCategories, setIdentityCategories] = useState<string[]>([]);
   const [selectedIdentities, setSelectedIdentities] = useState<{
     [index: number]: string;
   }>({});
@@ -254,7 +255,7 @@ export const ImagePreviewModal = ({
   };
 
   const isAllSelectionsComplete = () => {
-    return Object.entries(itemsWithIdentity).every(([identityId, items]) =>
+    return Object.entries(itemsWithIdentity).every(([_, items]) =>
       items.every(
         (item) => item.itemClass && item.itemSubClass && item.productType
       )
@@ -305,7 +306,6 @@ export const ImagePreviewModal = ({
   const handleIdentityRequest = async (identity: {
     name: string;
     category: string;
-    requestBy: string;
   }) => {
     const address = sessionStorage.getItem("USER_DOC_ID");
     if (!identity.name || identity.category === "") {
@@ -316,7 +316,6 @@ export const ImagePreviewModal = ({
       try {
         await networkManager.request("request/identity", "POST", {
           ...identity,
-          requestBy: address,
         });
         alert("요청이 완료되었습니다.");
         setShowAddForm(false);
@@ -328,6 +327,14 @@ export const ImagePreviewModal = ({
     } else {
       alert("로그인이 필요합니다");
     }
+  };
+
+  const handleClose = () => {
+    onClose();
+    setShowAddForm(false);
+    setSelectedPath({});
+    setSelectedIdentities({});
+    setItemsWithIdentity({});
   };
 
   const fetchCategories = async () => {
@@ -348,6 +355,11 @@ export const ImagePreviewModal = ({
     } catch (error) {
       console.error("Failed to fetch identities:", error);
     }
+  };
+
+  const fetchIdentityCategories = async () => {
+    const res = await networkManager.request("identity/categories", "GET");
+    setIdentityCategories(res.data);
   };
 
   const getInnerCategories = (itemClass: string) => {
@@ -372,13 +384,10 @@ export const ImagePreviewModal = ({
         <div className="bg-[#1A1A1A] rounded-lg shadow-xl overflow-hidden w-full max-w-2xl">
           <div className="p-6">
             {/* Header */}
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {request.title}
-              </h2>
+            <div className="flex justify-end mb-4">
               <button
-                onClick={onClose}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={handleClose}
+                className="text-gray-500 hover:text-[#EAFD66]"
               >
                 닫기
               </button>
@@ -404,8 +413,8 @@ export const ImagePreviewModal = ({
                   }}
                   onMouseDown={(e) => handleDragStart(e, index)}
                 >
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center ring-2 ring-white shadow-lg hover:bg-blue-600 transition-colors">
-                    <span className="text-xs text-white font-bold">
+                  <div className="w-4 h-4 bg-[#EAFD66] rounded-full flex items-center justify-center ring-2 ring-black/50 shadow-lg hover:bg-[#EAFD66] transition-colors">
+                    <span className="text-xs text-black font-bold">
                       {index + 1}
                     </span>
                   </div>
@@ -422,8 +431,8 @@ export const ImagePreviewModal = ({
                   className="bg-[#1A1A1A] border border-gray-400 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
                 >
                   <div className="flex items-center gap-3 pb-4 border-b border-gray-400">
-                    <div className="w-8 h-8 bg-blue-500 bg-opacity-10 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">
+                    <div className="w-8 h-8 bg-[#EAFD66] bg-opacity-10 rounded-lg flex items-center justify-center">
+                      <span className="text-[#EAFD66] font-semibold">
                         {index + 1}
                       </span>
                     </div>
@@ -433,20 +442,19 @@ export const ImagePreviewModal = ({
                   </div>
                   {/* Subject */}
                   <div className="flex flex-col gap-2">
-                    <h2 className="mt-4"> 대상 </h2>
                     <div className="pt-4">
                       <div className="mb-2">
                         <input
                           type="text"
-                          placeholder="아티스트 검색..."
-                          className="w-full px-3 py-2 border rounded-md text-gray-400 bg-[#1A1A1A]"
+                          placeholder="아이덴티티 검색"
+                          className="w-full px-3 py-2 rounded-md text-gray-400 bg-[#1A1A1A]"
                           onChange={(e) =>
                             handleSearchChange(index, e.target.value)
                           }
                         />
                       </div>
 
-                      {/* 아티스트 목록 */}
+                      {/* 아이덴티티 목록 */}
                       {searchQueries[index] && (
                         <div className="max-h-80 overflow-y-auto rounded-md border">
                           {getFilteredIdentities(index).length > 0 ? (
@@ -457,16 +465,16 @@ export const ImagePreviewModal = ({
                                   handleIdentitySelect(index, identity.id, item)
                                 }
                                 className={`
-    flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-100 transition-colors duration-200
+    flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-400 transition-colors duration-200
      ${
        itemsWithIdentity[identity.id]?.includes(item)
-         ? "bg-blue-50 border-l-4 border-blue-500"
+         ? "bg-[#EAFD66] border-l-4 border-[#EAFD66]"
          : ""
      } 
   `}
                               >
                                 {/* 프로필 이미지 */}
-                                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
+                                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-400">
                                   {identity.profileImageUrl ? (
                                     <Image
                                       src={identity.profileImageUrl}
@@ -476,7 +484,7 @@ export const ImagePreviewModal = ({
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-400 to-gray-500">
                                       <svg
                                         className="w-6 h-6 text-gray-400"
                                         fill="none"
@@ -526,12 +534,12 @@ export const ImagePreviewModal = ({
                             ))
                           ) : (
                             <div className="p-4 text-center">
-                              <p className="text-gray-500 mb-2">
-                                찾으시는 아티스트가 없나요?
-                              </p>
                               {!showAddForm ? (
                                 <button
-                                  onClick={() => setShowAddForm(true)}
+                                  onClick={() => {
+                                    setShowAddForm(true);
+                                    fetchIdentityCategories();
+                                  }}
                                   className="text-blue-500 hover:text-blue-700"
                                 >
                                   아티스트 추가 요청하기
@@ -539,7 +547,7 @@ export const ImagePreviewModal = ({
                               ) : (
                                 <div className="max-w-md mx-auto p-4 border rounded-lg">
                                   <h3 className="font-bold mb-3 text-gray-400">
-                                    셀럽 추가 요청
+                                    아이덴티티 추가
                                   </h3>
                                   <input
                                     type="text"
@@ -563,17 +571,13 @@ export const ImagePreviewModal = ({
                                       })
                                     }
                                   >
-                                    <option value="singer">가수</option>
-                                    <option value="k-pop">K-POP</option>
-                                    <option value="influencer">
-                                      인플루언서
-                                    </option>
-                                    <option value="model">모델</option>
-                                    <option value="designer">디자이너</option>
-                                    <option value="politician">정치인</option>
-                                    <option value="businessman">기업인</option>
-                                    <option value="actor">배우</option>
-                                    <option value="athlete">운동선수</option>
+                                    {identityCategories.map(
+                                      (category, index) => (
+                                        <option key={index} value={category}>
+                                          {category}
+                                        </option>
+                                      )
+                                    )}
                                   </select>
                                   <div className="flex gap-2 justify-end">
                                     <button
@@ -617,10 +621,9 @@ export const ImagePreviewModal = ({
                     {selectedIdentities[index] && (
                       <>
                         <div className="mt-4 space-y-4">
-                          <h2> 아이템 분류 </h2>
                           {/* 아이템 종류 선택 */}
                           <select
-                            className="w-full p-2 border border-gray-300 rounded-md"
+                            className="w-full p-2 rounded-md bg-[#1A1A1A] text-gray-400"
                             value={selectedPath[index]?.[0] ?? ""}
                             onChange={(e) =>
                               handleItemClassSelect(index, e.target.value)
@@ -640,7 +643,7 @@ export const ImagePreviewModal = ({
 
                         {selectedPath[index]?.[0] && (
                           <select
-                            className="w-full p-2 border border-gray-300 rounded-md"
+                            className="w-full p-2 rounded-md bg-[#1A1A1A] text-gray-400"
                             value={selectedPath[index]?.[1] ?? ""}
                             onChange={(e) =>
                               handleItemSubClassSelect(index, e.target.value)
@@ -666,7 +669,7 @@ export const ImagePreviewModal = ({
                           return (
                             <select
                               key={depth}
-                              className="w-full p-2 border border-gray-300 rounded-md"
+                              className="w-full p-2 rounded-md bg-[#1A1A1A] text-gray-400"
                               value={selectedPath[index]?.[depth + 2] ?? ""}
                               onChange={(e) => {
                                 const value = e.target.value;
@@ -717,30 +720,31 @@ export const ImagePreviewModal = ({
               ))}
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6 flex justify-end border-t pt-4">
-        <button
-          className={`px-4 py-2 rounded-md ${
-            isAllSelectionsComplete()
-              ? "bg-blue-500 hover:bg-blue-600 text-white"
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
-          onClick={() => {
-            if (isAllSelectionsComplete()) {
-              onUpdate({
-                title: request.title,
-                description: request.description,
-                style: request.style,
-                requestedItems: itemsWithIdentity,
-              });
-            }
-          }}
-          disabled={!isAllSelectionsComplete()}
-        >
-          완료
-        </button>
+          {/* Complete Button */}
+          <div className="flex w-full justify-center p-4">
+            <button
+              className={`p-4 w-full rounded-md ${
+                isAllSelectionsComplete()
+                  ? "bg-[#EAFD66] hover:bg-[#EAFD66] text-black"
+                  : "bg-black text-gray-400 cursor-not-allowed"
+              }`}
+              onClick={() => {
+                if (isAllSelectionsComplete()) {
+                  onUpdate({
+                    title: request.title,
+                    description: request.description,
+                    style: request.style,
+                    requestedItems: itemsWithIdentity,
+                  });
+                }
+              }}
+              disabled={!isAllSelectionsComplete()}
+            >
+              완료
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

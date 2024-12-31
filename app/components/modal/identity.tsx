@@ -1,12 +1,7 @@
-import { useState } from "react";
-import { IdentityInfo } from "@/types/model";
+import { useEffect, useState } from "react";
+import { IdentityInfo, LinkInfo } from "@/types/model";
 import { networkManager } from "@/network/network";
 import { arrayBufferToBase64 } from "@/utils/util";
-
-enum SnsType {
-  Instagram = "instagram",
-  Youtube = "youtube",
-}
 
 export const IdentityModal = ({
   id,
@@ -26,15 +21,19 @@ export const IdentityModal = ({
     en: identityName?.en || "",
   });
   const [category, setCategory] = useState<string>(identityCategory);
-  const [aka, setAka] = useState<string[]>([]);
-  const [group, setGroup] = useState<Record<string, string>>({
-    en: "",
-    ko: "",
-  });
-  const [nationality, setNationality] = useState<string | null>(null);
-  const [snsUrls, setSnsUrls] = useState<Record<string, string>>({});
+  const [linkInfo, setLinkInfo] = useState<LinkInfo[]>([]);
+  const [linkLabels, setLinkLabels] = useState<string[]>([]);
   const [imageFile, setImageFile] = useState<File>();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+
+  useEffect(() => {
+    const fetchLinkLabels = async () => {
+      const response = await networkManager.request(`link/labels`, "GET");
+      setLinkLabels(response.data);
+    };
+    fetchLinkLabels();
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -44,21 +43,8 @@ export const IdentityModal = ({
     }
   };
 
-  const handleSnsUrlChange =
-    (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSnsUrls({ ...snsUrls, [type]: e.target.value });
-    };
-
-  const handleAkaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const akaArray = e.target.value.split(",").map((item) => item.trim()); // 쉼표로 분리하고 공백 제거
-    setAka(akaArray);
-  };
-
   const defaultState = () => {
-    setAka([]);
-    setGroup({ en: "", ko: "" });
-    setSnsUrls({});
-    setNationality(null);
+    setLinkInfo([]);
     setImageFile(undefined);
     setImagePreview(null);
     setName({ en: "", ko: "" });
@@ -66,21 +52,14 @@ export const IdentityModal = ({
   };
 
   const upload = async () => {
-    if (!name || !imageFile || !nationality) {
+    if (!name || !imageFile) {
       alert("필수 입력 항목을 입력해주세요.");
       return;
     }
-    const snsInfo = Object.entries(snsUrls).map(([platform, url]) => ({
-      platform: platform,
-      url: url,
-    }));
     const newIdentityInfo: IdentityInfo = {
       name: name,
       category: category,
-      nationality: nationality,
-      aka: aka,
-      group: group,
-      snsInfo: snsInfo,
+      linkInfo: linkInfo,
     };
     const buf = await imageFile.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
@@ -138,46 +117,94 @@ export const IdentityModal = ({
 
         {/* Profile Image */}
         <div className="space-y-4">
-          <p className="text-sm font-medium text-gray-400">프로필 이미지</p>
-          <div
-            className="relative flex items-center justify-center w-full border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition duration-150 ease-in-out cursor-pointer"
-            style={{ aspectRatio: "1 / 1" }}
+          {/* 이미지 업로드 토글 버튼 */}
+          <button
+            onClick={() => setShowImageUpload(!showImageUpload)}
+            className="w-full px-3 py-2 text-sm bg-[#2A2A2A] text-gray-400 rounded-md hover:bg-[#3A3A3A] flex items-center justify-center gap-2"
           >
-            {imagePreview && (
-              <img
-                src={imagePreview}
-                alt="미리보기"
-                className="absolute inset-0 object-cover w-full h-full rounded-lg"
-              />
+            <span>
+              {showImageUpload ? "프로필 이미지 취소" : "프로필 이미지 추가"}
+            </span>
+            {showImageUpload ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
             )}
-            <label className="flex flex-col items-center justify-center w-full h-full opacity-0 bg-black/50 hover:opacity-100 transition-opacity duration-150 ease-in-out ">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg
-                  className="w-10 h-10 mb-3 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+          </button>
+
+          {/* 이미지 업로드 섹션 */}
+          {showImageUpload && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-gray-400">프로필 이미지</p>
+              <div
+                className="relative flex items-center justify-center w-full rounded-lg bg-[#1A1A1A] hover:bg-[#2A2A2A] transition duration-150 ease-in-out cursor-pointer"
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="미리보기"
+                    className="absolute inset-0 object-cover w-full h-full rounded-lg"
                   />
-                </svg>
-                <p className="mb-2 text-sm text-gray-500">
-                  <span className="font-semibold">클릭하여 업로드</span>
-                </p>
-                <p className="text-xs text-gray-500">PNG, JPG (최대 10MB)</p>
+                )}
+                <label className="flex flex-col items-center justify-center w-full h-full bg-black/50 transition-opacity duration-150 ease-in-out">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg
+                      className="w-10 h-10 mb-3 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">클릭하여 업로드</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG (최대 10MB)
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
-            </label>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Artist Name */}
@@ -187,14 +214,14 @@ export const IdentityModal = ({
             <input
               type="text"
               placeholder="영어 이름 (예: Jennie)"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
               value={name.en}
               onChange={(e) => setName({ ...name, en: e.target.value })}
             />
             <input
               type="text"
               placeholder="한국어 이름 (예: 제니)"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
               value={name.ko}
               onChange={(e) => setName({ ...name, ko: e.target.value })}
             />
@@ -208,92 +235,88 @@ export const IdentityModal = ({
             <input
               type="text"
               placeholder="아티스트 카테고리 (예: K-POP)"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Nationality */}
+        {/* Links */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">국적</p>
-          <select
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            value={nationality || ""}
-            onChange={(e) => setNationality(e.target.value)}
-          >
-            <option value="" disabled>
-              국적을 선택하세요
-            </option>
-            <option value="kr">대한민국</option>
-            <option value="us">미국</option>
-            <option value="jp">일본</option>
-            <option value="cn">중국</option>
-            <option value="gb">영국</option>
-            <option value="th">태국</option>
-            <option value="tw">대만</option>
-          </select>
-        </div>
-
-        {/* AKA */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">별명 (a.k.a)</p>
-          <input
-            type="text"
-            placeholder="쉼표로 구분하여 입력 (예: 제니, Jennie Kim)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            value={aka.join(", ")}
-            onChange={handleAkaChange}
-          />
-        </div>
-
-        {/* Group */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">소속 그룹</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="영어 (예: BLACKPINK)"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              value={group.en}
-              onChange={(e) => setGroup({ ...group, en: e.target.value })}
-            />
-            <input
-              type="text"
-              placeholder="한글 (예: 블랙핑크)"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              value={group.ko}
-              onChange={(e) => setGroup({ ...group, ko: e.target.value })}
-            />
-          </div>
-        </div>
-
-        {/* SNS */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">SNS 정보</p>
-          <div className="space-y-4">
-            {Object.values(SnsType).map((snsType) => (
-              <div key={snsType}>
-                <label className="block text-xs text-gray-500 mb-1">
-                  {snsType.toUpperCase()}
-                </label>
-                <input
-                  type="text"
-                  placeholder={`${snsType} URL을 입력하세요`}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  value={snsUrls[snsType] || ""}
-                  onChange={handleSnsUrlChange(snsType)}
-                />
+          <p className="text-sm font-medium text-gray-700">링크 정보</p>
+          <div className="space-y-4 ">
+            {linkInfo.map((info, index) => (
+              <div
+                key={index}
+                className="space-y-2 border border-gray-700 rounded-lg p-4"
+              >
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    라벨
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
+                    value={info.label}
+                    onChange={(e) => {
+                      const newLinkInfo = [...linkInfo];
+                      newLinkInfo[index].label = e.target.value;
+                      setLinkInfo(newLinkInfo);
+                    }}
+                  >
+                    <option value="">선택</option>
+                    {linkLabels.map((label) => (
+                      <option key={label} value={label}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">
+                    URL
+                  </label>
+                  <input
+                    type="url"
+                    className="w-full px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
+                    value={info.url}
+                    onChange={(e) => {
+                      const newLinkInfo = [...linkInfo];
+                      newLinkInfo[index].url = e.target.value;
+                      setLinkInfo(newLinkInfo);
+                    }}
+                    placeholder="URL을 입력하세요"
+                  />
+                </div>
+                {/* 삭제 버튼 */}
+                <button
+                  onClick={() => {
+                    const newLinkInfo = linkInfo.filter((_, i) => i !== index);
+                    setLinkInfo(newLinkInfo);
+                  }}
+                  className="text-xs text-red-500 hover:text-red-600"
+                >
+                  삭제
+                </button>
               </div>
             ))}
+
+            {/* 추가 버튼 */}
+            <button
+              onClick={() => {
+                setLinkInfo([...linkInfo, { label: "", url: "" }]);
+              }}
+              className="w-full px-3 py-2 text-sm bg-[#2A2A2A] text-gray-400 rounded-md hover:bg-[#3A3A3A]"
+            >
+              + 링크 추가
+            </button>
           </div>
         </div>
 
         {/* Submit Button */}
         <button
           onClick={upload}
-          className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors duration-200 mt-6"
+          className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-[#EAFD66] transition-colors duration-200 mt-6 hover:text-black"
         >
           저장하기
         </button>

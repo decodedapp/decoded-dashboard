@@ -1,17 +1,6 @@
-import { useState, useEffect } from "react";
-import {
-  ImageDocument,
-  IdentityDocument,
-  Point,
-  RequestedItem,
-} from "@/types/model";
-import {
-  ItemClass,
-  ItemSubClass,
-  subClassesByClass,
-  categoriesBySubClass,
-} from "@/constants/categories";
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { ImageDocument, Point, RequestedItem } from "@/types/model";
 import { networkManager } from "@/network/network";
 
 interface AddItemModalProps {
