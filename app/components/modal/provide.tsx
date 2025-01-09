@@ -37,11 +37,8 @@ export const ProvidePanel = ({
       return;
     }
     const providerId = sessionStorage.getItem("USER_DOC_ID");
-    if (!providerId) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-    provideData.provider = providerId;
+
+    provideData.provider = providerId || "";
     await networkManager
       .request(
         `image/${imageDocId}/provide/item/${item.Id}`,
@@ -225,13 +222,13 @@ export const ProvidePanel = ({
             <div className="space-y-2 p-4">
               {saleCount > 0 ? (
                 saleLinks.map((link, index) => {
-                  const url = new URL(link.value);
+                  const url = new URL(link.url);
                   const domain = url.hostname.replace("www.", "");
 
                   return (
                     <a
                       key={index}
-                      href={link.value}
+                      href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-4 rounded-lg bg-zinc-900/50 hover:bg-zinc-800/50 transition-all hover:scale-[1.02] group"
@@ -300,13 +297,13 @@ export const ProvidePanel = ({
                   </div>
                   <div className="space-y-2">
                     {referenceLinks.map((link, index) => {
-                      const url = new URL(link.value);
+                      const url = new URL(link.url);
                       const domain = url.hostname.replace("www.", "");
 
                       return (
                         <a
                           key={index}
-                          href={link.value}
+                          href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 p-4 rounded-lg bg-zinc-900/50 hover:bg-zinc-800/50 transition-all hover:scale-[1.02] group"

@@ -47,10 +47,6 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
         },
       });
     });
-    if (sessionStorage.getItem("USER_DOC_ID") === null) {
-      alert("로그인이 필요합니다");
-      return;
-    }
     const requestAddItem = {
       requestBy: sessionStorage.getItem("USER_DOC_ID"),
       items,

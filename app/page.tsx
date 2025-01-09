@@ -1381,6 +1381,12 @@ const ProvideSection = () => {
     try {
       setIsLoading(true);
       const response = await networkManager.request("images", "GET", null);
+      const test = await networkManager.request(
+        "metrics/trending/items",
+        "GET",
+        null
+      );
+      console.log(test);
       const images = convertKeysToCamelCase(response.data.images);
       setImages(images);
       console.log(images);
@@ -1759,6 +1765,8 @@ const ConfirmSection = () => {
     try {
       setSelectedItems(new Set());
       setConfirmItemInfo(null);
+      const test = await networkManager.request("metrics/decoded", "GET");
+      console.log(test);
       const response = await networkManager.request(
         `admin/${sessionStorage.getItem("USER_DOC_ID")}/items/providable`,
         "GET",

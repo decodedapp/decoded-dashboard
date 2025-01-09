@@ -25,7 +25,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
       if (sub && iss && aud) {
         try {
           const res = await networkManager.request(
-            `admin/${hash(sub + iss + aud)}/login`,
+            `user/${hash(sub + iss + aud)}/login`,
             "GET",
             {}
           );
@@ -33,8 +33,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
           const user_doc_id = res.data.user;
           const _ = await networkManager.request(
             `user/${user_doc_id}?aka=${sui_acc}`,
-            "POST",
-            {}
+            "POST"
           );
           window.sessionStorage.setItem("USER_DOC_ID", user_doc_id);
           window.sessionStorage.setItem("SUI_ACCOUNT", sui_acc);

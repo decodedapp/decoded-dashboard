@@ -307,25 +307,20 @@ export const ImagePreviewModal = ({
     name: string;
     category: string;
   }) => {
-    const address = sessionStorage.getItem("USER_DOC_ID");
     if (!identity.name || identity.category === "") {
       alert("모든 필드를 입력해주세요");
       return;
     }
-    if (address) {
-      try {
-        await networkManager.request("request/identity", "POST", {
-          ...identity,
-        });
-        alert("요청이 완료되었습니다.");
-        setShowAddForm(false);
-      } catch (error: any) {
-        alert(
-          error.response?.data?.description || "요청 중 오류가 발생했습니다."
-        );
-      }
-    } else {
-      alert("로그인이 필요합니다");
+    try {
+      await networkManager.request("request/identity", "POST", {
+        ...identity,
+      });
+      alert("요청이 완료되었습니다.");
+      setShowAddForm(false);
+    } catch (error: any) {
+      alert(
+        error.response?.data?.description || "요청 중 오류가 발생했습니다."
+      );
     }
   };
 

@@ -67,7 +67,7 @@ interface RequestedItem {
 interface RequestImage {
   requestedItems: RequestedItem[];
   requestBy: string;
-  imageFile: string;
+  imageFile?: string;
   metadata: Record<string, string>;
 }
 
@@ -93,7 +93,7 @@ interface ItemMetadata {
 
 interface LinkInfoWithProvider {
   provider: string;
-  value: string;
+  url: string;
   label: string;
 }
 
@@ -143,12 +143,6 @@ interface IdentityDocument {
   profileImageUrl: string;
 }
 
-interface ItemCategory<M extends MainCategory = MainCategory> {
-  main: M;
-  sub: SubCategoryMap<M>;
-  instance: InstanceMap<M, SubCategoryMap<M>>;
-}
-
 interface ProvideData {
   provider?: string;
   links?: string[];
@@ -164,7 +158,6 @@ interface BrandData {
 interface ProvideInfo<T> {
   who: string;
   value: T;
-  provideStatus: ProvideStatus;
 }
 
 interface ProvideItemInfoWithMetadata {
