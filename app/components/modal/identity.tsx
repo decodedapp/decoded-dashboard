@@ -29,7 +29,7 @@ export const IdentityModal = ({
 
   useEffect(() => {
     const fetchLinkLabels = async () => {
-      const response = await networkManager.request(`link/labels`, "GET");
+      const response = await networkManager.request(`item/labels`, "GET");
       setLinkLabels(response.data);
     };
     fetchLinkLabels();
@@ -67,11 +67,17 @@ export const IdentityModal = ({
       identity_info: newIdentityInfo,
       image_file: base64,
     };
-    console.log(requestBody);
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
+    if (!userDocId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     await networkManager.request(
-      `upload/identity?request=${requestId}`,
+      `admin/${userDocId}/identity/upload/${requestId}`,
       "POST",
-      requestBody
+      requestBody,
+      accessToken
     );
     defaultState();
     onUpdate();

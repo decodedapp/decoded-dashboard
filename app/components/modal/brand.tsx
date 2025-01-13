@@ -22,7 +22,7 @@ export const BrandModal = ({
 
   useEffect(() => {
     const fetchLinkLabels = async () => {
-      const response = await networkManager.request(`link/labels`, "GET");
+      const response = await networkManager.request(`item/labels`, "GET");
       setLinkLabels(response.data);
     };
     fetchLinkLabels();

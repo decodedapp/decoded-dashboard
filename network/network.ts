@@ -58,17 +58,26 @@ export class NetworkManager {
     return NetworkManager.instance;
   }
 
-  public async request(path: string, method: string, data: any = null) {
+  public async request(
+    path: string,
+    method: string,
+    data: any = null,
+    access_token: string | null = null
+  ) {
     try {
       const convertedData = convertKeysToSnakeCase(data);
       const url = `${this.config.db}/${path}`;
+      const headers: any = {
+        "Content-Type": "application/json",
+      };
+      if (access_token) {
+        headers["Authorization"] = `Bearer ${access_token}`;
+      }
       const res = await axios.request({
         url,
         method,
         data: convertedData,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         maxRedirects: 0,
       });
       return res.data;

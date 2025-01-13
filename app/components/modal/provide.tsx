@@ -39,11 +39,14 @@ export const ProvidePanel = ({
     const providerId = sessionStorage.getItem("USER_DOC_ID");
 
     provideData.provider = providerId || "";
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
     await networkManager
       .request(
-        `image/${imageDocId}/provide/item/${item.Id}`,
+        `user/${userDocId}/image/${imageDocId}/provide/item/${item.Id}`,
         "POST",
-        provideData
+        provideData,
+        accessToken
       )
       .then(() => {
         alert("제공 요청이 완료되었습니다.");

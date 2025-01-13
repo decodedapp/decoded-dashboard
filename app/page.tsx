@@ -250,8 +250,19 @@ const ImageRequestSection = () => {
         itemsWithIdentity: request.itemsWithIdentity,
       };
       console.log("uploadImage", uploadImage);
+      const accessToken = localStorage.getItem("access_token");
+      const userDocId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userDocId) {
+        alert("로그인이 필요합니다.");
+        return;
+      }
       await networkManager
-        .request(`image/upload/${request.Id}`, "POST", uploadImage)
+        .request(
+          `admin/${userDocId}/image/upload/${request.Id}`,
+          "POST",
+          uploadImage,
+          accessToken
+        )
         .then(() => {
           alert("이미지 업로드 완료");
           fetchImageRequests();
@@ -289,10 +300,16 @@ const ImageRequestSection = () => {
   const fetchImageRequests = async () => {
     setIsLoading(true);
     try {
+      const accessToken = localStorage.getItem("access_token");
+      const userDocId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userDocId) {
+        alert("로그인이 필요합니다.");
+      }
       const res = await networkManager.request(
-        "requests?doc_type=image",
+        `admin/${userDocId}/request?doc_type=image`,
         "GET",
-        null
+        null,
+        accessToken
       );
       const requests = convertKeysToCamelCase(res?.data.requests) || [];
       const updatedRequests = requests.map((request: any) => {
@@ -320,7 +337,7 @@ const ImageRequestSection = () => {
     if (isConfirmed) {
       try {
         await networkManager.request(
-          `delete/request?id=${requestId}`,
+          `admin/request/delete/${requestId}`,
           "DELETE",
           null
         );
@@ -544,10 +561,16 @@ const ArtistRequestSection = () => {
     console.log("fetching identity requests");
     setIsLoading(true);
     try {
+      const accessToken = localStorage.getItem("access_token");
+      const userDocId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userDocId) {
+        alert("로그인이 필요합니다.");
+      }
       const res = await networkManager.request(
-        "requests?doc_type=identity",
+        `admin/${userDocId}/request?doc_type=identity`,
         "GET",
-        null
+        null,
+        accessToken
       );
       setArtistRequests(res?.data.requests || []);
     } catch (error) {
@@ -688,10 +711,16 @@ const BrandRequestSection = () => {
   const fetchBrandRequests = async () => {
     setIsLoading(true);
     try {
+      const accessToken = localStorage.getItem("access_token");
+      const userDocId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userDocId) {
+        alert("로그인이 필요합니다.");
+      }
       const res = await networkManager.request(
-        "requests?doc_type=brand",
+        `admin/${userDocId}/request?doc_type=brand`,
         "GET",
-        null
+        null,
+        accessToken
       );
       setBrandRequests(res?.data.requests || []);
     } catch (error) {
@@ -871,8 +900,18 @@ const RequestSection = () => {
       imageFile: base64Image,
       metadata: {},
     };
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
+    if (!userDocId) {
+      alert("Login First!");
+    }
     networkManager
-      .request("request/image", "POST", requestImage)
+      .request(
+        `user/${userDocId}/image/request`,
+        "POST",
+        requestImage,
+        accessToken
+      )
       .then(() => {
         alert("요청이 완료되었습니다.");
         defaultState();
@@ -1380,16 +1419,19 @@ const ProvideSection = () => {
   const fetchImages = async () => {
     try {
       setIsLoading(true);
-      const response = await networkManager.request("images", "GET", null);
-      const test = await networkManager.request(
-        "metrics/trending/items",
-        "GET",
-        null
-      );
-      console.log(test);
-      const images = convertKeysToCamelCase(response.data.images);
-      setImages(images);
-      console.log(images);
+      const response = await networkManager.request("image", "GET", null);
+      const imageDocs = [];
+      for (const image of response.data.images) {
+        const imageId = image.image_doc_id;
+        const res = await networkManager.request(
+          `image/${imageId}`,
+          "GET",
+          null
+        );
+        console.log(res.data.image);
+        imageDocs.push(convertKeysToCamelCase(res.data.image));
+      }
+      setImages(imageDocs);
     } catch (error) {
       console.error("이미지 로딩 실패:", error);
     } finally {
@@ -1765,12 +1807,16 @@ const ConfirmSection = () => {
     try {
       setSelectedItems(new Set());
       setConfirmItemInfo(null);
-      const test = await networkManager.request("metrics/decoded", "GET");
-      console.log(test);
+      const accessToken = localStorage.getItem("access_token");
+      const userDocId = sessionStorage.getItem("USER_DOC_ID");
+      if (!userDocId) {
+        alert("로그인이 필요합니다.");
+      }
       const response = await networkManager.request(
-        `admin/${sessionStorage.getItem("USER_DOC_ID")}/items/providable`,
+        `admin/${userDocId}/item/provided`,
         "GET",
-        null
+        null,
+        accessToken
       );
       setLabels(response.data.labels);
       const convertedData = response.data.items.map((item: any) => {
@@ -1812,11 +1858,14 @@ const ConfirmSection = () => {
     ) {
       confirmItemInfo.rejectUrls = undefined;
     }
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
     try {
       await networkManager.request(
-        `item/${itemDocId}/confirm`,
+        `admin/${userDocId}/item/${itemDocId}/confirm`,
         "POST",
-        converted
+        converted,
+        accessToken
       );
       alert("선택된 아이템이 확정되었습니다.");
       fetchUnconfirmedItems();
@@ -2143,7 +2192,7 @@ const AdditionalFieldsForm = ({
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await networkManager.request("brand/all", "GET", null);
+        const response = await networkManager.request("brand", "GET", null);
         const brand_docs = response.data.brands;
         setBrands(
           brand_docs.map((brand: any) => ({

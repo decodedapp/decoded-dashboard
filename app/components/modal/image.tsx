@@ -311,10 +311,21 @@ export const ImagePreviewModal = ({
       alert("모든 필드를 입력해주세요");
       return;
     }
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
+    if (!userDocId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     try {
-      await networkManager.request("request/identity", "POST", {
-        ...identity,
-      });
+      await networkManager.request(
+        `admin/${userDocId}/identity/request`,
+        "POST",
+        {
+          ...identity,
+        },
+        accessToken
+      );
       alert("요청이 완료되었습니다.");
       setShowAddForm(false);
     } catch (error: any) {
@@ -333,14 +344,14 @@ export const ImagePreviewModal = ({
   };
 
   const fetchCategories = async () => {
-    const res = await networkManager.request("categories", "GET", null);
+    const res = await networkManager.request("category/all", "GET", null);
     setCategories(res.data.item_classes);
   };
 
   const fetchIdentities = async () => {
     try {
-      const res = await networkManager.request("identities", "GET", null);
-      const identities = res.data.identities.map((identity: any) => ({
+      const res = await networkManager.request("identity", "GET", null);
+      const identities = res.data.docs.map((identity: any) => ({
         name: identity.name,
         category: identity.category,
         id: identity._id,

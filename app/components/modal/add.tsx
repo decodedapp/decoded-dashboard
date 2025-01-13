@@ -14,8 +14,9 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
   useEffect(() => {
     const fetchCelebs = async () => {
       try {
-        const res = await networkManager.request("identities", "GET", null);
-        const identities = res.data.identities.map((celeb: any) => ({
+        const res = await networkManager.request("identity", "GET", null);
+        console.log("identity", res);
+        const identities = res.data.docs.map((celeb: any) => ({
           name: celeb.name,
           category: celeb.category,
           id: celeb._id,
@@ -54,7 +55,7 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
     console.log("requestAddItem", requestAddItem);
     console.log(image);
     networkManager
-      .request(`request/image/${image.docId}/add/item`, "POST", requestAddItem)
+      .request(`image/${image.docId}/request/add`, "POST", requestAddItem)
       .then(() => {
         alert("요청이 완료되었습니다.");
         setNewMarkers([]);
