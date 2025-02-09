@@ -162,6 +162,7 @@ interface ProvideInfo<T> {
 
 interface ProvideItemInfoWithMetadata {
   itemDocId: string;
+  imageDocId: string;
   hasFields: HasFields;
   unconfirmedLinks?: string[];
 }
@@ -186,6 +187,7 @@ interface HasFields {
 }
 
 interface ConfirmItemInfo {
+  imageDocId?: string;
   base64Image?: string;
   approveUrls?: LinkInfo[];
   rejectUrls?: string[];
@@ -221,4 +223,12 @@ export interface CategoryDoc {
   item_class: string;
   depth: number;
   inner?: Category[];
+}
+
+export interface MetadataResponse {
+  product_name?: string;
+  material?: string;
+  price?: number;
+  currency?: string;
+  brand?: string;
 }

@@ -14,7 +14,11 @@ export class NetworkManager {
     /**
      * @property {string} db - Database endpoint root URL
      */
-    db: string;
+    api_server: string;
+    /**
+     * @property {string} ai_server - AI endpoint root URL
+     */
+    ai_server: string;
     /**
      * @property {string} auth_client_id - Google auth client ID
      */
@@ -26,16 +30,6 @@ export class NetworkManager {
   };
 
   private constructor() {
-    const is_prod = process.env.NODE_ENV === "production";
-    if (is_prod) {
-      if (process.env.NEXT_PUBLIC_DB_ENDPOINT === undefined) {
-        throw new Error("Environment variable is undefined");
-      }
-    } else {
-      if (process.env.NEXT_PUBLIC_LOCAL_DB_ENDPOINT === undefined) {
-        throw new Error("Environment variable is undefined");
-      }
-    }
     if (
       process.env.NEXT_PUBLIC_AUTH_CLIENT_ID === undefined ||
       process.env.NEXT_PUBLIC_REDIRECT_URI === undefined
@@ -43,9 +37,8 @@ export class NetworkManager {
       throw new Error("Environment variable is undefined");
     }
     this.config = {
-      db: is_prod
-        ? process.env.NEXT_PUBLIC_DB_ENDPOINT!
-        : process.env.NEXT_PUBLIC_LOCAL_DB_ENDPOINT!,
+      api_server: process.env.NEXT_PUBLIC_API_SERVER!,
+      ai_server: process.env.NEXT_PUBLIC_AI_SERVER!,
       auth_client_id: process.env.NEXT_PUBLIC_AUTH_CLIENT_ID!,
       redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI!,
     };
@@ -62,11 +55,14 @@ export class NetworkManager {
     path: string,
     method: string,
     data: any = null,
-    access_token: string | null = null
+    access_token: string | null = null,
+    is_ai: boolean = false
   ) {
     try {
       const convertedData = convertKeysToSnakeCase(data);
-      const url = `${this.config.db}/${path}`;
+      const url = is_ai
+        ? `${this.config.ai_server}/${path}`
+        : `${this.config.api_server}/${path}`;
       const headers: any = {
         "Content-Type": "application/json",
       };
@@ -108,7 +104,11 @@ export class NetworkManager {
         client_id: this.config.auth_client_id,
         redirect_uri: this.config.redirect_uri,
         response_type: "id_token",
-        scope: "openid",
+        scope: [
+          "openid",
+          "https://www.googleapis.com/auth/userinfo.email",
+          "https://www.googleapis.com/auth/userinfo.profile",
+        ].join(" "),
         nonce: nonce,
       });
       const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;

@@ -357,6 +357,7 @@ export const ImagePreviewModal = ({
         id: identity._id,
         profileImageUrl: identity.profile_image_url,
       }));
+      console.log(identities);
       setIdentities(identities);
     } catch (error) {
       console.error("Failed to fetch identities:", error);
@@ -400,7 +401,7 @@ export const ImagePreviewModal = ({
             </div>
 
             {/* Image with markers */}
-            <div className="relative aspect-[3/4] mb-6">
+            <div className="relative aspect-[3/4] max-h-[500px] mb-6">
               <Image
                 src={request.imgUrl}
                 alt={request.title}
@@ -727,13 +728,13 @@ export const ImagePreviewModal = ({
             </div>
           </div>
 
-          {/* Complete Button */}
-          <div className="flex w-full justify-center p-4">
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-800">
             <button
-              className={`p-4 w-full rounded-md ${
+              className={`w-full py-3 rounded-xl font-medium transition-all ${
                 isAllSelectionsComplete()
-                  ? "bg-[#EAFD66] hover:bg-[#EAFD66] text-black"
-                  : "bg-black text-gray-400 cursor-not-allowed"
+                  ? "bg-[#EAFD66] hover:bg-[#EAFD66]/90 text-black"
+                  : "bg-gray-800 text-gray-400 cursor-not-allowed"
               }`}
               onClick={() => {
                 if (isAllSelectionsComplete()) {

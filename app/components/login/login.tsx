@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { networkManager } from "@/network/network";
 import { usePathname } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode, JwtPayload } from "jwt-decode";
 import { jwtToAddress } from "@mysten/zklogin";
 import { hash } from "@/utils/util";
 
+interface CustomJwtPayload extends JwtPayload {
+  email: string;
+}
 interface AdminLoginProps {
   onLogin: () => void;
 }
@@ -18,17 +21,27 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
   useEffect(() => {
     const hashTag = window.location.hash;
     const login = async (token: string) => {
-      const decoded_jwt = jwtDecode(token);
+      const decoded_jwt = jwtDecode<CustomJwtPayload>(token);
       const sub = decoded_jwt.sub;
       const iss = decoded_jwt.iss;
       const aud = decoded_jwt.aud;
       if (sub && iss && aud) {
+        const token_hash = hash(sub + iss + aud);
         try {
           const res = await networkManager.request(
             `user/login?token=${hash(sub + iss + aud)}`,
-            "GET",
-            {}
+            "POST",
+            {
+              token: token_hash,
+              email: decoded_jwt.email,
+              agreement: {
+                marketing: true,
+                notification: false,
+                tracking: false,
+              },
+            }
           );
+          console.log(res.data.access_token);
           localStorage.setItem("access_token", res.data.access_token);
           const sui_acc = jwtToAddress(token, res.data.salt);
           const user_doc_id = res.data.doc_id;

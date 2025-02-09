@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "DECODED",
-  description: "Proof of Concept for DECODED",
+  description: "Admin Dashboard for DECODED platform",
 };
 
 export default function RootLayout({
