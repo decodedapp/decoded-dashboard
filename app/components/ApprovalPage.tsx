@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import ImageRequestSection from "./ImageRequestSection";
-import ArtistRequestSection from "./ArtistRequestSection";
-import BrandRequestSection from "./BrandRequestSection";
 import ConfirmSection from "./ConfirmSection";
-import {
-  HiOutlinePhotograph,
-  HiOutlineUserGroup,
-  HiOutlineShoppingBag,
-  HiOutlineCheck,
-} from "react-icons/hi";
+import { HiOutlinePhotograph, HiOutlineCheck } from "react-icons/hi";
 
 type ApprovalTabType = "images" | "artists" | "brands" | "confirm";
 
