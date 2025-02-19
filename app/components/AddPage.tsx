@@ -48,27 +48,27 @@ const AddPage = () => {
       alert("필수 입력 항목을 입력해주세요.");
       return;
     }
-    const newIdentityInfo: IdentityInfo = {
-      name: name,
-      category: category,
-      linkInfo: linkInfo,
-    };
+
     const buf = await imageFile.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
     const requestBody = {
-      identity_info: newIdentityInfo,
       image_file: base64,
+      name: name,
+      category: category,
+      links: linkInfo, // Optional field
     };
+
     const accessToken = localStorage.getItem("access_token");
     const userDocId = sessionStorage.getItem("USER_DOC_ID");
     if (!userDocId) {
       alert("로그인이 필요합니다.");
       return;
     }
+
     try {
       setIsLoading(true);
       await networkManager.request(
-        `admin/${userDocId}/identity/request`,
+        `admin/${userDocId}/identity/upload`,
         "POST",
         requestBody,
         accessToken
@@ -94,26 +94,26 @@ const AddPage = () => {
       alert("브랜드 이름과 로고를 입력해주세요.");
       return;
     }
-    const newBrandInfo: BrandInfo = {
-      name: name,
-      linkInfo: linkInfo,
-    };
+
     const buf = await imageFile.arrayBuffer();
     const base64 = arrayBufferToBase64(buf);
     const requestBody = {
-      brandInfo: newBrandInfo,
-      imageFile: base64,
+      name: name,
+      image_file: base64,
+      links: linkInfo, // Optional field
     };
+
     const accessToken = localStorage.getItem("access_token");
     const userDocId = sessionStorage.getItem("USER_DOC_ID");
     if (!userDocId) {
       alert("로그인이 필요합니다.");
       return;
     }
+
     try {
       setIsLoading(true);
       await networkManager.request(
-        `admin/${userDocId}/brand/request`,
+        `admin/${userDocId}/brand/upload`,
         "POST",
         requestBody,
         accessToken
@@ -307,10 +307,10 @@ const AddPage = () => {
                     <input
                       type="url"
                       className="w-full px-3 py-2 rounded-md bg-[#1A1A1A] text-gray-400"
-                      value={info.url}
+                      value={info.value}
                       onChange={(e) => {
                         const newLinkInfo = [...linkInfo];
-                        newLinkInfo[index].url = e.target.value;
+                        newLinkInfo[index].value = e.target.value;
                         setLinkInfo(newLinkInfo);
                       }}
                       placeholder="URL을 입력하세요"
@@ -332,7 +332,7 @@ const AddPage = () => {
 
               <button
                 onClick={() => {
-                  setLinkInfo([...linkInfo, { label: "", url: "" }]);
+                  setLinkInfo([...linkInfo, { label: "", value: "" }]);
                 }}
                 className="w-full px-3 py-2 text-sm bg-[#2A2A2A] text-gray-400 rounded-md hover:bg-[#3A3A3A]"
               >

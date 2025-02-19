@@ -28,7 +28,7 @@ export interface IdentityInfo {
 }
 
 export interface LinkInfo {
-  url: string;
+  value: string;
   label?: string;
 }
 

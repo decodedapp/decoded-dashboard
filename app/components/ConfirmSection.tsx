@@ -63,16 +63,16 @@ const ConfirmSection = () => {
             (u) => u !== url
           );
 
-          if (newRequest.approveUrls?.some((u) => u.url === url)) {
+          if (newRequest.approveUrls?.some((u) => u.value === url)) {
             newRequest.approveUrls = newRequest.approveUrls?.filter(
-              (u) => u.url !== url
+              (u) => u.value !== url
             );
           } else {
-            newRequest.approveUrls?.push({ url, label: "" });
+            newRequest.approveUrls?.push({ value: url, label: "" });
           }
         } else {
           newRequest.approveUrls = newRequest.approveUrls?.filter(
-            (u) => u.url !== url
+            (u) => u.value !== url
           );
 
           if (newRequest.rejectUrls?.includes(url)) {
@@ -240,7 +240,7 @@ const ConfirmSection = () => {
       return {
         ...prev,
         approveUrls: prev.approveUrls?.map((url) =>
-          url.url === link ? { ...url, label } : url
+          url.value === link ? { ...url, label } : url
         ),
       };
     });
@@ -380,12 +380,12 @@ const ConfirmSection = () => {
                               아이템 링크
                             </a>
                             {confirmItemInfo?.approveUrls?.some(
-                              (url) => url.url === link
+                              (url) => url.value === link
                             ) && (
                               <select
                                 value={
                                   confirmItemInfo?.approveUrls?.find(
-                                    (url) => url.url === link
+                                    (url) => url.value === link
                                   )?.label || ""
                                 }
                                 onChange={(e) =>
@@ -418,7 +418,7 @@ const ConfirmSection = () => {
                                 }
                                 className={`p-1.5 rounded-full transition-colors ${
                                   confirmItemInfo?.approveUrls?.some(
-                                    (url) => url.url === link
+                                    (url) => url.value === link
                                   )
                                     ? "bg-green-100 text-green-600"
                                     : "hover:bg-gray-100 text-gray-400"
