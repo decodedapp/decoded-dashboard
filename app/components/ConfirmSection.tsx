@@ -12,6 +12,7 @@ import {
   HasFields,
   MetadataResponse,
   AdditionalMetadata,
+  BrandDoc,
 } from "@/types/model";
 import AdditionalFieldsForm from "./AdditionalFieldsForm";
 
@@ -28,6 +29,7 @@ const ConfirmSection = () => {
   const [metadata, setMetadata] = useState<Record<string, MetadataResponse>>(
     {}
   );
+  const [brands, setBrands] = useState<BrandDoc[]>([]);
 
   const toggleSelectItem = (
     itemDocId: string,
@@ -90,6 +92,21 @@ const ConfirmSection = () => {
     });
   };
 
+  const fetchBrands = async () => {
+    try {
+      const response = await networkManager.request("brand", "GET", null);
+      const brand_docs = response.data.brands;
+      setBrands(
+        brand_docs.map((brand: any) => ({
+          name: { ko: brand.name.ko, en: brand.name.en },
+          docId: brand._id,
+        }))
+      );
+    } catch (error) {
+      console.error("브랜드 목록을 불러오는데 실패했습니다:", error);
+    }
+  };
+
   const fetchUnconfirmedItems = async () => {
     try {
       setSelectedItems(new Set());
@@ -100,7 +117,7 @@ const ConfirmSection = () => {
         alert("로그인이 필요합니다.");
       }
       const response = await networkManager.request(
-        `admin/${userDocId}/item/provided?next_id=678540e0ba081e9d5197cfff`,
+        `admin/${userDocId}/item/provided`,
         "GET",
         null,
         accessToken
@@ -124,7 +141,7 @@ const ConfirmSection = () => {
   };
 
   useEffect(() => {
-    fetchUnconfirmedItems();
+    Promise.all([fetchUnconfirmedItems(), fetchBrands()]);
   }, []);
 
   const handleConfirmItemInfo = async (itemDocId: string) => {
@@ -456,6 +473,7 @@ const ConfirmSection = () => {
                     )}
                 </div>
                 <AdditionalFieldsForm
+                  docs={brands}
                   hasFields={hasFields[item.itemDocId]}
                   metadata={metadata[item.itemDocId]}
                   onUpdate={(fields) => {

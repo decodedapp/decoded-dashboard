@@ -55,13 +55,13 @@ export interface BrandInfo {
 }
 
 interface RequestedItem {
+  position?: Position;
+  context?: string;
   itemClass?: string;
   itemSubClass?: string;
   category?: string;
   subCategory?: string;
   productType?: string;
-  position: Position;
-  context?: string;
 }
 
 interface RequestImage {
@@ -212,9 +212,9 @@ interface ItemRequest {
   items: ProvidedItemDetail[] | null;
 }
 
-export interface Category<T = Category> {
+export interface Category {
   name: string;
-  children?: T[];
+  children?: Category[];
   is_leaf: boolean;
   instances?: string[];
 }
@@ -231,4 +231,15 @@ export interface MetadataResponse {
   price?: number;
   currency?: string;
   brand?: string;
+}
+
+export interface ItemWithIdentity {
+  identity_doc_id?: string;
+  identity_name?: string;
+  item?: RequestedItem;
+}
+
+export interface BrandDoc {
+  name: Record<string, string>;
+  docId: string;
 }

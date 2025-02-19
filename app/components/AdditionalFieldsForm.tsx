@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { networkManager } from "@/network/network";
-import { HasFields, AdditionalMetadata, MetadataResponse } from "@/types/model";
+import {
+  HasFields,
+  AdditionalMetadata,
+  MetadataResponse,
+  BrandDoc,
+} from "@/types/model";
 
 const AdditionalFieldsForm = ({
+  docs,
   hasFields,
   onUpdate,
   metadata,
 }: {
+  docs: BrandDoc[];
   hasFields: HasFields;
   onUpdate: (fields: AdditionalMetadata) => void;
   metadata?: MetadataResponse;
@@ -14,31 +21,12 @@ const AdditionalFieldsForm = ({
   const [fields, setFields] = useState<AdditionalMetadata>({});
   const [brandQuery, setBrandQuery] = useState("");
   const [showBrandRequest, setShowBrandRequest] = useState(false);
-  const [filteredBrands, setFilteredBrands] = useState<
-    { name: { ko: string; en: string }; docId: string }[]
-  >([]);
+  const [filteredBrands, setFilteredBrands] = useState<BrandDoc[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [brands, setBrands] = useState<
-    { name: { ko: string; en: string }; docId: string }[]
-  >([]);
+  const [brands, setBrands] = useState<BrandDoc[]>([]);
   useEffect(() => {
-    const fetchBrands = async () => {
-      try {
-        const response = await networkManager.request("brand", "GET", null);
-        const brand_docs = response.data.brands;
-        setBrands(
-          brand_docs.map((brand: any) => ({
-            name: { ko: brand.name.ko, en: brand.name.en },
-            docId: brand._id,
-          }))
-        );
-      } catch (error) {
-        console.error("브랜드 목록을 불러오는데 실패했습니다:", error);
-      }
-    };
-
-    fetchBrands();
-  }, []);
+    setBrands(docs);
+  }, [docs]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -74,11 +62,11 @@ const AdditionalFieldsForm = ({
         "POST",
         null
       );
-      alert("브랜드 요청이 완료되었습니다.");
+      alert("브랜드 추가 완료되었습니다.");
       setShowBrandRequest(false);
     } catch (error) {
-      console.error("브랜드 요청에 실패했습니다:", error);
-      alert("브랜드 요청에 실패했습니다.");
+      console.error("브랜드 추가에 실패했습니다:", error);
+      alert("브랜드 추가에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }

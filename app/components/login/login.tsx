@@ -9,11 +9,11 @@ interface CustomJwtPayload extends JwtPayload {
   email: string;
 }
 interface AdminLoginProps {
+  setIsLoading: (isLoading: boolean) => void;
   onLogin: () => void;
 }
 
-export default function AdminLogin({ onLogin }: AdminLoginProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export default function AdminLogin({ setIsLoading, onLogin }: AdminLoginProps) {
   const [error, setError] = useState<string | null>(null);
 
   const pathName = usePathname();
@@ -21,6 +21,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
   useEffect(() => {
     const hashTag = window.location.hash;
     const login = async (token: string) => {
+      setIsLoading(true);
       const decoded_jwt = jwtDecode<CustomJwtPayload>(token);
       const sub = decoded_jwt.sub;
       const iss = decoded_jwt.iss;
@@ -29,7 +30,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
         const token_hash = hash(sub + iss + aud);
         try {
           const res = await networkManager.request(
-            `user/login?token=${hash(sub + iss + aud)}`,
+            `user/login?type=admin`,
             "POST",
             {
               token: token_hash,
@@ -41,7 +42,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
               },
             }
           );
-          console.log(res.data.access_token);
+
           localStorage.setItem("access_token", res.data.access_token);
           const sui_acc = jwtToAddress(token, res.data.salt);
           const user_doc_id = res.data.doc_id;
@@ -104,47 +105,13 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
           {/* Google Sign In Button */}
           <button
             onClick={handleGoogleLogin}
-            disabled={isLoading}
-            className={`
-              w-full flex items-center justify-center px-4 py-2.5 rounded-md shadow-sm
-              bg-[#1A1A1A] hover:bg-[#EAFD66]
-              transition-colors duration-200
-              ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
-            `}
+            className={
+              "w-full flex items-center justify-center px-4 py-2.5 rounded-md shadow-sm bg-[#1A1A1A] hover:bg-[#EAFD66] transition-colors duration-200"
+            }
           >
-            {isLoading ? (
-              <div className="flex items-center space-x-3">
-                <svg
-                  className="animate-spin h-5 w-5 text-gray-500"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span className="text-sm font-medium text-gray-700">
-                  로그인 중...
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-medium text-gray-400">
-                  로그인
-                </span>
-              </div>
-            )}
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-gray-400">로그인</span>
+            </div>
           </button>
         </div>
       </div>

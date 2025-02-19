@@ -23,16 +23,6 @@ const ApprovalPage = () => {
       icon: <HiOutlinePhotograph className="w-5 h-5" />,
     },
     {
-      id: "artists",
-      label: "아티스트 요청",
-      icon: <HiOutlineUserGroup className="w-5 h-5" />,
-    },
-    {
-      id: "brands",
-      label: "브랜드 요청",
-      icon: <HiOutlineShoppingBag className="w-5 h-5" />,
-    },
-    {
       id: "confirm",
       label: "아이템 확정",
       icon: <HiOutlineCheck className="w-5 h-5" />,
@@ -72,16 +62,6 @@ const ApprovalPage = () => {
             {currentApprovalTab === "images" && (
               <div className="animate-fadeIn">
                 <ImageRequestSection />
-              </div>
-            )}
-            {currentApprovalTab === "artists" && (
-              <div className="animate-fadeIn">
-                <ArtistRequestSection />
-              </div>
-            )}
-            {currentApprovalTab === "brands" && (
-              <div className="animate-fadeIn">
-                <BrandRequestSection />
               </div>
             )}
             {currentApprovalTab === "confirm" && (
