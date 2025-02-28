@@ -35,11 +35,13 @@ const ConfirmSection = () => {
 
     setConfirmItemInfo((prev) => {
       const newRequest: ConfirmItemInfo = {
-        approveLinks: prev ? [...(prev.approveLinks || [])] : undefined,
-        rejectLinks: prev ? [...(prev.rejectLinks || [])] : undefined,
+        approveLinks: prev ? [...(prev.approveLinks || [])] : [],
+        rejectLinks: prev ? [...(prev.rejectLinks || [])] : [],
         additionalMetadata: prev?.additionalMetadata || undefined,
         base64Image: prev?.base64Image,
-        imageDocId: prev?.imageDocId,
+        imageDocId:
+          prev?.imageDocId ||
+          items.find((item) => item.itemDocId === itemDocId)?.imageDocId,
       };
 
       if (url) {
