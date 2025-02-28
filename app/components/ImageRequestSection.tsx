@@ -193,7 +193,7 @@ const ImageRequestSection = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await networkManager.request("category/all", "GET", null);
+      const res = await networkManager.request("category", "GET", null);
       setCategories(res.data.item_classes);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
