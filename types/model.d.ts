@@ -188,8 +188,8 @@ interface HasFields {
 interface ConfirmItemInfo {
   imageDocId?: string;
   base64Image?: string;
-  approveUrls?: LinkInfo[];
-  rejectUrls?: string[];
+  approveLinks?: LinkInfo[];
+  rejectLinks?: string[];
   additionalMetadata?: AdditionalMetadata;
 }
 

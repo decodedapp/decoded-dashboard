@@ -35,8 +35,8 @@ const ConfirmSection = () => {
 
     setConfirmItemInfo((prev) => {
       const newRequest: ConfirmItemInfo = {
-        approveUrls: prev ? [...(prev.approveUrls || [])] : undefined,
-        rejectUrls: prev ? [...(prev.rejectUrls || [])] : undefined,
+        approveLinks: prev ? [...(prev.approveLinks || [])] : undefined,
+        rejectLinks: prev ? [...(prev.rejectLinks || [])] : undefined,
         additionalMetadata: prev?.additionalMetadata || undefined,
         base64Image: prev?.base64Image,
         imageDocId: prev?.imageDocId,
@@ -44,34 +44,34 @@ const ConfirmSection = () => {
 
       if (url) {
         if (action === "confirm") {
-          newRequest.rejectUrls = newRequest.rejectUrls?.filter(
+          newRequest.rejectLinks = newRequest.rejectLinks?.filter(
             (u) => u !== url
           );
 
-          if (newRequest.approveUrls?.some((u) => u.value === url)) {
-            newRequest.approveUrls = newRequest.approveUrls?.filter(
+          if (newRequest.approveLinks?.some((u) => u.value === url)) {
+            newRequest.approveLinks = newRequest.approveLinks?.filter(
               (u) => u.value !== url
             );
           } else {
-            newRequest.approveUrls?.push({ value: url, label: "" });
+            newRequest.approveLinks?.push({ value: url, label: "" });
           }
         } else {
-          newRequest.approveUrls = newRequest.approveUrls?.filter(
+          newRequest.approveLinks = newRequest.approveLinks?.filter(
             (u) => u.value !== url
           );
 
-          if (newRequest.rejectUrls?.includes(url)) {
-            newRequest.rejectUrls = newRequest.rejectUrls?.filter(
+          if (newRequest.rejectLinks?.includes(url)) {
+            newRequest.rejectLinks = newRequest.rejectLinks?.filter(
               (u) => u !== url
             );
           } else {
-            newRequest.rejectUrls?.push(url);
+            newRequest.rejectLinks?.push(url);
           }
         }
       }
 
-      return newRequest.approveUrls?.length === 0 &&
-        newRequest.rejectUrls?.length === 0
+      return newRequest.approveLinks?.length === 0 &&
+        newRequest.rejectLinks?.length === 0
         ? null
         : newRequest;
     });
@@ -152,16 +152,16 @@ const ConfirmSection = () => {
     const converted = convertKeysToSnakeCase(confirmItemInfo);
     const fields = [];
     if (
-      confirmItemInfo?.approveUrls !== undefined &&
-      confirmItemInfo?.approveUrls.length == 0
+      confirmItemInfo?.approveLinks !== undefined &&
+      confirmItemInfo?.approveLinks.length == 0
     ) {
-      confirmItemInfo.approveUrls = undefined;
+      confirmItemInfo.approveLinks = undefined;
     }
     if (
-      confirmItemInfo?.rejectUrls !== undefined &&
-      confirmItemInfo?.rejectUrls.length == 0
+      confirmItemInfo?.rejectLinks !== undefined &&
+      confirmItemInfo?.rejectLinks.length == 0
     ) {
-      confirmItemInfo.rejectUrls = undefined;
+      confirmItemInfo.rejectLinks = undefined;
     }
     const accessToken = localStorage.getItem("access_token");
     const userDocId = sessionStorage.getItem("USER_DOC_ID");
@@ -191,7 +191,7 @@ const ConfirmSection = () => {
       if (!prev) return prev;
       return {
         ...prev,
-        approveUrls: prev.approveUrls?.map((url) =>
+        approveLinks: prev.approveLinks?.map((url) =>
           url.value === link ? { ...url, label } : url
         ),
       };
@@ -280,12 +280,12 @@ const ConfirmSection = () => {
                           >
                             아이템 링크
                           </a>
-                          {confirmItemInfo?.approveUrls?.some(
+                          {confirmItemInfo?.approveLinks?.some(
                             (url) => url.value === link
                           ) && (
                             <select
                               value={
-                                confirmItemInfo?.approveUrls?.find(
+                                confirmItemInfo?.approveLinks?.find(
                                   (url) => url.value === link
                                 )?.label || ""
                               }
@@ -318,7 +318,7 @@ const ConfirmSection = () => {
                                 )
                               }
                               className={`p-1.5 rounded-full transition-colors ${
-                                confirmItemInfo?.approveUrls?.some(
+                                confirmItemInfo?.approveLinks?.some(
                                   (url) => url.value === link
                                 )
                                   ? "bg-green-100 text-green-600"
@@ -344,7 +344,7 @@ const ConfirmSection = () => {
                                 toggleSelectItem(item.itemDocId, "reject", link)
                               }
                               className={`p-1.5 rounded-full transition-colors ${
-                                confirmItemInfo?.rejectUrls?.includes(link)
+                                confirmItemInfo?.rejectLinks?.includes(link)
                                   ? "bg-red-100 text-red-600"
                                   : "hover:bg-gray-100 text-gray-400"
                               }`}
