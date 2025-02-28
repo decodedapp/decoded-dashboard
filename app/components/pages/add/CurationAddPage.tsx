@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { networkManager } from "@/network/network";
 import Image from "next/image";
 import { useInView } from "react-intersection-observer";
@@ -79,7 +79,7 @@ const CurationAddPage = () => {
     }
   };
 
-  const fetchCurations = async () => {
+  const fetchCurations = useCallback(async () => {
     try {
       const accessToken = localStorage.getItem("access_token");
       const userDocId = sessionStorage.getItem("USER_DOC_ID");
@@ -105,11 +105,11 @@ const CurationAddPage = () => {
     } catch (error) {
       console.error("큐레이션 목록을 불러오는데 실패했습니다:", error);
     }
-  };
+  }, [contentType, curationType]);
 
   useEffect(() => {
     fetchCurations();
-  }, [contentType, curationType]);
+  }, [fetchCurations]);
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">

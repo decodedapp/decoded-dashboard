@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useInView } from "react-intersection-observer";
 import Image from "next/image";
 import { networkManager } from "@/network/network";
@@ -38,9 +38,36 @@ const ImageRequestSection = () => {
   const [identities, setIdentities] = useState<IdentityDocument[]>([]);
   const { ref, inView } = useInView();
 
+  const fetchIdentities = useCallback(async (nextId?: string) => {
+    try {
+      const endpoint = nextId ? `identity?next_id=${nextId}` : "identity";
+
+      const res = await networkManager.request(endpoint, "GET", null);
+
+      const newIdentities = res.data.docs.map((identity: any) => ({
+        name: identity.name,
+        category: identity.category,
+        id: identity._id,
+        profileImageUrl: identity.profile_image_url,
+      }));
+
+      if (!nextId) {
+        setIdentities(newIdentities);
+      } else {
+        setIdentities((prev) => [...prev, ...newIdentities]);
+      }
+
+      if (res.data.next_id) {
+        await fetchIdentities(res.data.next_id);
+      }
+    } catch (error) {
+      console.error("Failed to fetch identities:", error);
+    }
+  }, []);
+
   useEffect(() => {
     Promise.all([fetchCategories(), fetchImageRequests(), fetchIdentities()]);
-  }, []);
+  }, [fetchIdentities]);
 
   const openModal = (request: any) => {
     setOpenModalId(request.Id);
@@ -161,33 +188,6 @@ const ImageRequestSection = () => {
       alert("이미지 요청 목록을 불러오는데 실패했습니다.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchIdentities = async (nextId?: string) => {
-    try {
-      const endpoint = nextId ? `identity?next_id=${nextId}` : "identity";
-
-      const res = await networkManager.request(endpoint, "GET", null);
-
-      const newIdentities = res.data.docs.map((identity: any) => ({
-        name: identity.name,
-        category: identity.category,
-        id: identity._id,
-        profileImageUrl: identity.profile_image_url,
-      }));
-
-      if (!nextId) {
-        setIdentities(newIdentities);
-      } else {
-        setIdentities((prev) => [...prev, ...newIdentities]);
-      }
-
-      if (res.data.next_id) {
-        await fetchIdentities(res.data.next_id);
-      }
-    } catch (error) {
-      console.error("Failed to fetch identities:", error);
     }
   };
 

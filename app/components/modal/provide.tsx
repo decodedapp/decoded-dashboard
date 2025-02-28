@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ItemDocument, ProvideData } from "@/types/model";
 import { networkManager } from "@/network/network";
+import Image from "next/image";
 
 interface ProvideModalProps {
   isOpen: boolean;
@@ -95,9 +96,11 @@ export const ProvidePanel = ({
         <div className="flex flex-col items-center mb-8">
           <div className="w-24 h-24 bg-gray-800 rounded-lg mb-4 overflow-hidden">
             {item.imgUrl ? (
-              <img
+              <Image
                 src={item.imgUrl}
                 alt="Item"
+                width={96}
+                height={96}
                 className="w-full h-full object-cover"
               />
             ) : (

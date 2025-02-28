@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { networkManager } from "@/network/network";
 import { LinkInfo } from "@/types/model";
 import { arrayBufferToBase64 } from "@/utils/util";
+import Image from "next/image";
 
 const IdentityAddPage = () => {
   const [name, setName] = useState<Record<string, string>>({
@@ -95,9 +96,11 @@ const IdentityAddPage = () => {
             <div className="space-y-1 text-center">
               {imagePreview ? (
                 <div className="relative w-24 h-24 mx-auto">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Preview"
+                    width={96}
+                    height={96}
                     className="w-full h-full object-contain"
                   />
                   <button

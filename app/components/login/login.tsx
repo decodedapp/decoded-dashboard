@@ -63,7 +63,7 @@ export default function AdminLogin({ setIsLoading, onLogin }: AdminLoginProps) {
         login(token);
       }
     }
-  }, [pathName]);
+  }, [onLogin, setIsLoading]);
 
   const handleGoogleLogin = async () => {
     const { sk, randomness, exp, url } =
