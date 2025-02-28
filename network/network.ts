@@ -32,12 +32,19 @@ export class NetworkManager {
   private constructor() {
     if (
       process.env.NEXT_PUBLIC_AUTH_CLIENT_ID === undefined ||
-      process.env.NEXT_PUBLIC_REDIRECT_URI === undefined
+      process.env.NEXT_PUBLIC_REDIRECT_URI === undefined ||
+      process.env.NEXT_PUBLIC_PROD_API_SERVER === undefined ||
+      process.env.NEXT_PUBLIC_DEV_API_SERVER === undefined
     ) {
       throw new Error("Environment variable is undefined");
     }
+
+    const isProd = process.env.NODE_ENV === "production";
+
     this.config = {
-      api_server: process.env.NEXT_PUBLIC_API_SERVER!,
+      api_server: isProd
+        ? process.env.NEXT_PUBLIC_PROD_API_SERVER!
+        : process.env.NEXT_PUBLIC_DEV_API_SERVER!,
       ai_server: process.env.NEXT_PUBLIC_AI_SERVER!,
       auth_client_id: process.env.NEXT_PUBLIC_AUTH_CLIENT_ID!,
       redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI!,

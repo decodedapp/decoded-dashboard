@@ -28,13 +28,12 @@ const ImageRequestSection = () => {
     new Set()
   );
   const [imageRequests, setImageRequests] = useState<any[]>([]);
-  console.log("ImageRequests", imageRequests);
+  console.log(imageRequests);
   const [isLoading, setIsLoading] = useState(false);
   const [nextId, setNextId] = useState(null);
   const [itemsWithIdentity, setItemsWithIdentity] = useState<{
     [index: number]: ItemWithIdentity;
   }>({});
-  console.log("ItemsWithIdentity", itemsWithIdentity);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [identities, setIdentities] = useState<IdentityDocument[]>([]);
   const { ref, inView } = useInView();
@@ -75,7 +74,6 @@ const ImageRequestSection = () => {
       return;
     }
     _record[items.identity_doc_id] = [items.item];
-    console.log("Items", _record);
     const requestWithArrayStyle = {
       ...request.doc,
       style:
@@ -83,6 +81,12 @@ const ImageRequestSection = () => {
           ? null
           : [request.doc.style],
     };
+    const accessToken = localStorage.getItem("access_token");
+    const userDocId = sessionStorage.getItem("USER_DOC_ID");
+    if (!userDocId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
     const isNew: boolean = request.metadata.isNew;
     if (isNew) {
       const uploadImage = {
@@ -90,12 +94,7 @@ const ImageRequestSection = () => {
         itemsWithIdentity: _record,
         identityName: items.identity_name,
       };
-      const accessToken = localStorage.getItem("access_token");
-      const userDocId = sessionStorage.getItem("USER_DOC_ID");
-      if (!userDocId) {
-        alert("로그인이 필요합니다.");
-        return;
-      }
+
       await networkManager
         .request(
           `admin/${userDocId}/image/upload/${request.Id}`,
@@ -122,8 +121,9 @@ const ImageRequestSection = () => {
       await networkManager
         .request(
           `admin/${userDocId}/image/${request.metadata.imageDocId}/add`,
-          "POST",
-          updateItem
+          "PATCH",
+          updateItem,
+          accessToken
         )
         .then(() => {
           if (!isBulk) {
@@ -164,16 +164,28 @@ const ImageRequestSection = () => {
     }
   };
 
-  const fetchIdentities = async () => {
+  const fetchIdentities = async (nextId?: string) => {
     try {
-      const res = await networkManager.request("identity", "GET", null);
-      const identities = res.data.docs.map((identity: any) => ({
+      const endpoint = nextId ? `identity?next_id=${nextId}` : "identity";
+
+      const res = await networkManager.request(endpoint, "GET", null);
+
+      const newIdentities = res.data.docs.map((identity: any) => ({
         name: identity.name,
         category: identity.category,
         id: identity._id,
         profileImageUrl: identity.profile_image_url,
       }));
-      setIdentities(identities);
+
+      if (!nextId) {
+        setIdentities(newIdentities);
+      } else {
+        setIdentities((prev) => [...prev, ...newIdentities]);
+      }
+
+      if (res.data.next_id) {
+        await fetchIdentities(res.data.next_id);
+      }
     } catch (error) {
       console.error("Failed to fetch identities:", error);
     }
@@ -182,7 +194,6 @@ const ImageRequestSection = () => {
   const fetchCategories = async () => {
     try {
       const res = await networkManager.request("category/all", "GET", null);
-      console.log(res.data);
       setCategories(res.data.item_classes);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
@@ -386,7 +397,7 @@ const ImageRequestSection = () => {
       />
 
       <div className="hidden sm:block">
-        <div className="bg-[#222222] shadow rounded-lg overflow-hidden">
+        <div className="bg-[#222222] shadow rounded-lg overflow-visible">
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-[#1A1A1A]">
               <tr>
@@ -447,7 +458,7 @@ const ImageRequestSection = () => {
                         onIdentitySelect={onIdentitySelect}
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap relative">
                       <CategorySelector
                         index={index}
                         docs={categories}

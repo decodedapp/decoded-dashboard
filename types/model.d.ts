@@ -160,11 +160,10 @@ interface ProvideInfo<T> {
   value: T;
 }
 
-interface ProvideItemInfoWithMetadata {
+interface PendingItem {
   itemDocId: string;
   imageDocId: string;
-  hasFields: HasFields;
-  unconfirmedLinks?: string[];
+  pendingLinks?: string[];
 }
 
 interface AdditionalMetadata {

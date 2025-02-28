@@ -101,7 +101,7 @@ export const CategorySelector = ({
       </div>
 
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-[#1A1A1A] border border-gray-700 rounded-lg shadow-lg">
+        <div className="absolute left-0 mt-1 w-full bg-[#1a1a1a] border border-gray-700 rounded-md shadow-lg z-50">
           <div className="p-2 space-y-1">
             {/* 현재 depth에 따라 적절한 카테고리 목록 표시 */}
             {selectedPath.length === 0 &&

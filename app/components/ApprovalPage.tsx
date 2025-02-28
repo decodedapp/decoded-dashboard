@@ -17,7 +17,7 @@ const ApprovalPage = () => {
     },
     {
       id: "confirm",
-      label: "아이템 확정",
+      label: "아이템 링크 승인",
       icon: <HiOutlineCheck className="w-5 h-5" />,
     },
   ];
