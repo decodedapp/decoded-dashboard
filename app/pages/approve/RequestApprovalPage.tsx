@@ -3,17 +3,16 @@ import { useInView } from "react-intersection-observer";
 import Image from "next/image";
 import { networkManager } from "@/network/network";
 import { convertKeysToCamelCase } from "@/utils/util";
-import { ImagePreviewModal } from "./modal/image";
+import { ImagePreviewModal } from "@/app/components/modal/image";
 import {
-  Category,
   CategoryDoc,
   IdentityDocument,
   ItemWithIdentity,
   RequestedItem,
 } from "@/types/model";
-import { IdentitySelector } from "./identitySelector";
-import { CategorySelector } from "./categorySelector";
-import { MobileView } from "../mobile/ImageRequest";
+import { IdentitySelector } from "@/app/components/selector/identitySelector";
+import { CategorySelector } from "@/app/components/selector/categorySelector";
+import { MobileView } from "@/app/mobile/ImageRequest";
 
 interface HeaderProps {
   isLoading: boolean;
@@ -22,7 +21,7 @@ interface HeaderProps {
   handleBulkDelete: () => void;
 }
 
-const ImageRequestSection = () => {
+const RequestApprovalPage = () => {
   const [openModalId, setOpenModalId] = useState<string | null>(null);
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(
     new Set()
@@ -677,4 +676,4 @@ export const Header = ({
   );
 };
 
-export default ImageRequestSection;
+export default RequestApprovalPage;

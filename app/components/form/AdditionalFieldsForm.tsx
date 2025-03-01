@@ -5,7 +5,9 @@ import {
   AdditionalMetadata,
   MetadataResponse,
   BrandDoc,
+  UpdateItemMetadata,
 } from "@/types/model";
+import Image from "next/image";
 
 const AdditionalFieldsForm = ({
   docs,
@@ -15,7 +17,7 @@ const AdditionalFieldsForm = ({
 }: {
   docs: BrandDoc[];
   hasFields: HasFields;
-  onUpdate: (fields: AdditionalMetadata) => void;
+  onUpdate: (fields: UpdateItemMetadata) => void;
   metadata?: MetadataResponse;
 }) => {
   const [fields, setFields] = useState<AdditionalMetadata>({});
@@ -23,6 +25,7 @@ const AdditionalFieldsForm = ({
   const [showBrandRequest, setShowBrandRequest] = useState(false);
   const [filteredBrands, setFilteredBrands] = useState<BrandDoc[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [brands, setBrands] = useState<BrandDoc[]>([]);
   useEffect(() => {
     setBrands(docs);
@@ -35,7 +38,10 @@ const AdditionalFieldsForm = ({
       delete updatedFields[name as keyof AdditionalMetadata];
     }
     setFields(updatedFields);
-    onUpdate(updatedFields);
+    onUpdate({
+      additionalMetadata: updatedFields,
+      base64Image: imagePreview?.split(",")[1],
+    });
   };
 
   const handleBrandSearch = (query: string) => {
@@ -74,6 +80,66 @@ const AdditionalFieldsForm = ({
 
   return (
     <div className="p-4 bg-[#1A1A1A] rounded-lg">
+      {!hasFields.hasImage && (
+        <div className="mb-4">
+          <h2 className="text-lg text-gray-400 font-bold mb-2">
+            이미지 업로드
+          </h2>
+          <label className="block w-full p-4 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-[#EAFD66] transition-colors">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    const base64 = reader.result as string;
+                    const base64Data = base64.split(",")[1];
+                    setImagePreview(base64);
+                    onUpdate({
+                      additionalMetadata: fields,
+                      base64Image: base64Data,
+                    });
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="hidden"
+            />
+            <div className="relative aspect-video w-full h-[200px]">
+              {" "}
+              {/* 높이 지정 */}
+              {imagePreview ? (
+                <Image
+                  src={imagePreview}
+                  alt="Preview"
+                  fill
+                  className="object-cover rounded"
+                  sizes="100%"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <svg
+                    className="w-8 h-8 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="text-sm">클릭하여 이미지 업로드</span>
+                </div>
+              )}
+            </div>
+          </label>
+        </div>
+      )}
       {!hasFields.hasBrand && (
         <div>
           <h2 className="text-lg text-gray-400 font-bold mb-2">
@@ -94,11 +160,15 @@ const AdditionalFieldsForm = ({
                   <button
                     key={index}
                     onClick={() => {
-                      setFields((prev) => ({
-                        ...prev,
-                        brand: brand.docId,
-                      }));
-                      onUpdate({ ...fields, brand: brand.docId });
+                      const updatedFields = {
+                        ...fields,
+                        brand: brand._id,
+                      };
+                      setFields(updatedFields);
+                      onUpdate({
+                        additionalMetadata: updatedFields,
+                        base64Image: imagePreview?.split(",")[1],
+                      });
                       setBrandQuery(brand.name.ko);
                       setFilteredBrands([]);
                     }}
@@ -164,7 +234,7 @@ const AdditionalFieldsForm = ({
               type="text"
               name="name"
               placeholder="아이템 이름"
-              value={metadata?.product_name || ""}
+              value={fields.name || ""}
               onChange={handleChange}
               className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />
@@ -194,7 +264,7 @@ const AdditionalFieldsForm = ({
               type="text"
               name="material"
               placeholder="소재"
-              value={metadata?.material || ""}
+              value={fields.material || ""}
               onChange={handleChange}
               className="w-full p-2 bg-[#1A1A1A] border border-gray-800 rounded"
             />

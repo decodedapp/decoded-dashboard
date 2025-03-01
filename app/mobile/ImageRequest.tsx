@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { ImagePreviewModal } from "../components/modal/image";
-import { IdentitySelector } from "../components/identitySelector";
-import { CategorySelector } from "../components/categorySelector";
+import { ImagePreviewModal } from "@/app/components/modal/image";
+import { IdentitySelector } from "@/app/components/selector/identitySelector";
+import { CategorySelector } from "@/app/components/selector/categorySelector";
 import { CategoryDoc, IdentityDocument } from "@/types/model";
 
 interface MobileViewProps {

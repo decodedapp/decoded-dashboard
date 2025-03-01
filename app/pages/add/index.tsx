@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import IdentityAddPage from "./pages/add/IdentityAddPage";
-import BrandAddPage from "./pages/add/BrandAddPage";
-import CurationAddPage from "./pages/add/CurationAddPage";
-import CategoryAddPage from "./pages/add/CategoryAddPage";
+import IdentityAddPage from "./IdentityAddPage";
+import BrandAddPage from "./BrandAddPage";
+import CurationAddPage from "./CurationAddPage";
+import CategoryAddPage from "./CategoryAddPage";
+import MetadataAddPage from "./MetadataAddPage";
 
-type AddType = "identity" | "brand" | "curation" | "category";
+type AddType = "identity" | "brand" | "curation" | "category" | "metadata";
 
 const AddPage = () => {
   const [currentTab, setCurrentTab] = useState<AddType>("identity");
@@ -53,6 +54,16 @@ const AddPage = () => {
           >
             카테고리 추가
           </button>
+          <button
+            onClick={() => setCurrentTab("metadata")}
+            className={`py-2 px-4 -mb-px ${
+              currentTab === "metadata"
+                ? "border-b-2 border-[#EAFD66] text-[#EAFD66]"
+                : "text-gray-400"
+            }`}
+          >
+            메타데이터 추가
+          </button>
         </div>
       </div>
 
@@ -60,6 +71,7 @@ const AddPage = () => {
       {currentTab === "brand" && <BrandAddPage />}
       {currentTab === "curation" && <CurationAddPage />}
       {currentTab === "category" && <CategoryAddPage />}
+      {currentTab === "metadata" && <MetadataAddPage />}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import ImageRequestSection from "./ImageRequestSection";
+import RequestApprovalPage from "./RequestApprovalPage";
 import ConfirmSection from "./ConfirmSection";
 import { HiOutlinePhotograph, HiOutlineCheck } from "react-icons/hi";
 
@@ -54,7 +54,7 @@ const ApprovalPage = () => {
           <div className="p-6">
             {currentApprovalTab === "images" && (
               <div className="animate-fadeIn">
-                <ImageRequestSection />
+                <RequestApprovalPage />
               </div>
             )}
             {currentApprovalTab === "confirm" && (

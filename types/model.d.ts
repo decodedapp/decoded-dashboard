@@ -164,6 +164,8 @@ interface PendingItem {
   itemDocId: string;
   imageDocId: string;
   pendingLinks?: string[];
+  imageUrl?: string;
+  additionalMetadata?: AdditionalMetadata;
 }
 
 interface AdditionalMetadata {
@@ -185,11 +187,14 @@ interface HasFields {
   hasDescription?: boolean;
 }
 
-interface ConfirmItemInfo {
+interface ConfirmItemLink {
   imageDocId?: string;
-  base64Image?: string;
   approveLinks?: LinkInfo[];
   rejectLinks?: string[];
+}
+
+interface UpdateItemMetadata {
+  base64Image?: string;
   additionalMetadata?: AdditionalMetadata;
 }
 
@@ -239,6 +244,6 @@ export interface ItemWithIdentity {
 }
 
 export interface BrandDoc {
+  _id: string;
   name: Record<string, string>;
-  docId: string;
 }
