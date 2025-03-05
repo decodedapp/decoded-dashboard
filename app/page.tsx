@@ -5,8 +5,9 @@ import AdminLogin from "./components/login/login";
 import MetricsPage from "./pages/metrics";
 import ApprovalPage from "./pages/approve";
 import AddPage from "./pages/add";
+import CurationPage from "./pages/curation";
 
-type TabType = "metrics" | "approval" | "add";
+type TabType = "metrics" | "approval" | "add" | "curation";
 
 const Page = () => {
   const [currentTab, setCurrentTab] = useState<TabType>("metrics");
@@ -230,6 +231,48 @@ const Page = () => {
               }`}
             />
           </button>
+          <button
+            onClick={() => setCurrentTab("curation")}
+            className={`
+              group flex items-center px-1 py-2.5 relative
+              transition-all duration-200 ease-in-out
+            `}
+          >
+            <svg
+              className={`w-4 h-4 mr-2 transition-colors ${
+                currentTab === "curation"
+                  ? "text-[#EAFD66]"
+                  : "text-gray-400 group-hover:text-gray-200"
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            <span
+              className={`text-sm font-medium transition-colors ${
+                currentTab === "curation"
+                  ? "text-[#EAFD66]"
+                  : "text-gray-400 group-hover:text-gray-200"
+              }`}
+            >
+              큐레이션
+            </span>
+            {/* 하단 인디케이터 라인 */}
+            <div
+              className={`absolute bottom-0 left-0 w-full h-0.5 transition-all duration-200 transform ${
+                currentTab === "curation"
+                  ? "bg-[#EAFD66] scale-x-100"
+                  : "bg-transparent scale-x-0 group-hover:scale-x-100 group-hover:bg-gray-400"
+              }`}
+            />
+          </button>
         </nav>
       </div>
 
@@ -237,6 +280,7 @@ const Page = () => {
         {currentTab === "metrics" && <MetricsPage />}
         {currentTab === "approval" && <ApprovalPage />}
         {currentTab === "add" && <AddPage />}
+        {currentTab === "curation" && <CurationPage />}
       </div>
     </div>
   );

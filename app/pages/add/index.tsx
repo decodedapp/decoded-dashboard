@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import IdentityAddPage from "./IdentityAddPage";
 import BrandAddPage from "./BrandAddPage";
-import CurationAddPage from "./CurationAddPage";
+import SystemConfigAddPage from "./SystemConfigAddPage";
 import CategoryAddPage from "./CategoryAddPage";
-import MetadataAddPage from "./MetadataAddPage";
 
-type AddType = "identity" | "brand" | "curation" | "category" | "metadata";
+type AddType = "identity" | "brand" | "system" | "category";
 
 const AddPage = () => {
   const [currentTab, setCurrentTab] = useState<AddType>("identity");
@@ -35,14 +34,14 @@ const AddPage = () => {
             브랜드 추가
           </button>
           <button
-            onClick={() => setCurrentTab("curation")}
+            onClick={() => setCurrentTab("system")}
             className={`py-2 px-4 -mb-px ${
-              currentTab === "curation"
+              currentTab === "system"
                 ? "border-b-2 border-[#EAFD66] text-[#EAFD66]"
                 : "text-gray-400"
             }`}
           >
-            큐레이션 추가
+            시스템 설정 추가
           </button>
           <button
             onClick={() => setCurrentTab("category")}
@@ -54,24 +53,13 @@ const AddPage = () => {
           >
             카테고리 추가
           </button>
-          <button
-            onClick={() => setCurrentTab("metadata")}
-            className={`py-2 px-4 -mb-px ${
-              currentTab === "metadata"
-                ? "border-b-2 border-[#EAFD66] text-[#EAFD66]"
-                : "text-gray-400"
-            }`}
-          >
-            메타데이터 추가
-          </button>
         </div>
       </div>
 
       {currentTab === "identity" && <IdentityAddPage />}
       {currentTab === "brand" && <BrandAddPage />}
-      {currentTab === "curation" && <CurationAddPage />}
       {currentTab === "category" && <CategoryAddPage />}
-      {currentTab === "metadata" && <MetadataAddPage />}
+      {currentTab === "system" && <SystemConfigAddPage />}
     </div>
   );
 };
