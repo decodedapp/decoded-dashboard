@@ -16,7 +16,7 @@ export function AddItemModal({ id, image }: AddItemModalProps) {
       try {
         const res = await networkManager.request("identity", "GET", null);
         console.log("identity", res);
-        const identities = res.data.docs.map((celeb: any) => ({
+        const identities = res.data.map((celeb: any) => ({
           name: celeb.name,
           category: celeb.category,
           id: celeb._id,

@@ -43,7 +43,7 @@ const RequestApprovalPage = () => {
 
       const res = await networkManager.request(endpoint, "GET", null);
 
-      const newIdentities = res.data.docs.map((identity: any) => ({
+      const newIdentities = res.data.map((identity: any) => ({
         name: identity.name,
         category: identity.category,
         id: identity._id,
@@ -54,10 +54,6 @@ const RequestApprovalPage = () => {
         setIdentities(newIdentities);
       } else {
         setIdentities((prev) => [...prev, ...newIdentities]);
-      }
-
-      if (res.data.next_id) {
-        await fetchIdentities(res.data.next_id);
       }
     } catch (error) {
       console.error("Failed to fetch identities:", error);
